@@ -1,4 +1,4 @@
-@extends('layouts.layout')
+@extends('backoffice.layouts.layout')
 
 @section('content')
     <div class="container-fluid py-2">

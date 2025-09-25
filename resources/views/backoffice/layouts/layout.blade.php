@@ -4,36 +4,36 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link rel="apple-touch-icon" sizes="76x76" href="{{ Vite::asset('resources/assets/img/apple-icon.png') }}">
-    <link rel="icon" type="image/png" href="{{ Vite::asset('resources/assets/img/favicon.png') }}">
+    <link rel="apple-touch-icon" sizes="76x76" href="{{ Vite::asset('resources/assets-backoffice/img/apple-icon.png') }}">
+    <link rel="icon" type="image/png" href="{{ Vite::asset('resources/assets-backoffice/img/favicon.png') }}">
     <title>
         Material Dashboard 3 by Creative Tim
     </title>
     <!-- Fonts and icons -->
     <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
     <!-- Nucleo Icons -->
-    @vite(['resources/assets/css/nucleo-icons.css', 'resources/assets/css/nucleo-svg.css'])
+    @vite(['resources/assets-backoffice/css/nucleo-icons.css', 'resources/assets-backoffice/css/nucleo-svg.css'])
     <!-- Font Awesome Icons -->
     <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
     <!-- Material Icons -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
     <!-- CSS Files -->
-    @vite(['resources/assets/css/material-dashboard.css'])
+    @vite(['resources/assets-backoffice/css/material-dashboard.css'])
 </head>
 
 <body class="g-sidenav-show bg-gray-100">
     <!-- Aside -->
-    @include('partials.aside')
+    @include('backoffice.partials.aside')
 
     <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
         <!-- Navbar -->
-        @include('partials.navbar')
+        @include('backoffice.partials.navbar')
 
         <!-- Content -->
         @yield('content')
 
         <!-- Footer -->
-        @include('partials.footer')
+        @include('backoffice.partials.footer')
     </main>
 
     <!-- Fixed Plugin -->
@@ -113,11 +113,11 @@
 
     <!-- Core JS Files -->
     @vite([
-        'resources/assets/js/core/popper.min.js',
-        'resources/assets/js/core/bootstrap.min.js',
-        'resources/assets/js/plugins/perfect-scrollbar.min.js',
-        'resources/assets/js/plugins/smooth-scrollbar.min.js',
-        'resources/assets/js/material-dashboard.min.js'
+        'resources/assets-backoffice/js/core/popper.min.js',
+        'resources/assets-backoffice/js/core/bootstrap.min.js',
+        'resources/assets-backoffice/js/plugins/perfect-scrollbar.min.js',
+        'resources/assets-backoffice/js/plugins/smooth-scrollbar.min.js',
+        'resources/assets-backoffice/js/material-dashboard.min.js'
     ])
 
     <script>
