@@ -1,0 +1,102 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+
+class AuthenticatedSessionController extends Controller
+{
+    /**
+     * Affiche le formulaire de connexion.
+     */
+    public function create()
+    {
+        // Ex: resources/views/frontoffice/authentication/login.blade.php
+        return view('frontoffice.authentication.login');
+    }
+
+    /**
+     * Traite la soumission du formulaire de connexion.
+     */
+    public function store(Request $request)
+    {
+        // 1) Valider les champs
+        $credentials = $request->validate([
+            'email'    => ['required', 'email'],
+            'password' => ['required'],
+        ]);
+
+        // 2) Tenter l'authentification
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            $request->session()->regenerate();
+
+            // 3) Redirection selon le rôle
+            $user = Auth::user();
+
+            if (method_exists($user, 'isAdmin') && $user->isAdmin()) {
+                return redirect()->route('dashboard');
+            }
+
+            // Par défaut (client)
+            return redirect()->route('home');
+        }
+
+        // 4) Échec de connexion
+        return back()->withErrors([
+            'email' => 'Identifiants incorrects.',
+        ])->onlyInput('email');
+    }
+
+    /**
+     * Affiche le formulaire d'inscription.
+     */
+    public function register()
+    {
+        // Ex: resources/views/frontoffice/authentication/register.blade.php
+        return view('frontoffice.authentication.register');
+    }
+
+    /**
+     * Traite l'inscription.
+     */
+    public function registerStore(Request $request)
+    {
+        // 1) Valider
+        $data = $request->validate([
+            'name'                  => ['required', 'string', 'max:255'],
+            'email'                 => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password'              => ['required', 'min:6', 'confirmed'], // nécessite password_confirmation
+        ]);
+
+        // 2) Créer l'utilisateur (par défaut rôle client)
+        $user = User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'password' => Hash::make($data['password']),
+            'role'     => 'client', // adapte si tu veux un autre défaut
+        ]);
+
+        // 3) Connecter et rediriger
+        Auth::login($user);
+
+        return redirect()->route('home');
+    }
+
+    /**
+     * Déconnexion.
+     */
+   public function destroy(Request $request)
+{
+    Auth::logout();
+
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    // Redirection vers la page home
+    return redirect()->route('home');
+}
+
+}
