@@ -5,6 +5,7 @@ use App\Http\Controllers\CommandeController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PostDechetController;
 use App\Http\Controllers\PropositionController;
+use App\Http\Controllers\AuthenticatedSessionController;
 
  
 Route::get('/', function () {
@@ -31,3 +32,13 @@ Route::get('mes-annonces', [AnnonceMarketplaceController::class, 'mesAnnonces'])
 Route::get('mes-commandes', [CommandeController::class, 'mesCommandes'])->name('mes-commandes');
 Route::get('commandes-recues', [CommandeController::class, 'commandesRecues'])->name('commandes-recues');
 Route::patch('annonces/{annonce}/statut', [AnnonceMarketplaceController::class, 'updateStatut'])->name('annonces.statut');
+// Login
+Route::get('/login',  [AuthenticatedSessionController::class, 'create'])->name('login');
+Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
+
+// Register
+Route::get('/register',  [AuthenticatedSessionController::class, 'register'])->name('register');
+Route::post('/register', [AuthenticatedSessionController::class, 'registerStore'])->name('register.store');
+
+// Logout
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
