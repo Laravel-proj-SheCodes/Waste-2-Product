@@ -2,7 +2,7 @@
     <!-- Made logo section bigger and centered -->
     <div class="sidenav-header text-center py-1">
         <i class="fas fa-times p-3 cursor-pointer text-dark opacity-5 position-absolute end-0 top-0 d-none d-xl-none" aria-hidden="true" id="iconSidenav"></i>
-        <a class="navbar-brand d-block mx-auto" href="https://demos.creative-tim.com/material-dashboard/pages/dashboard" target="_blank">
+        <a class="navbar-brand d-block mx-auto" href="{{ route('dashboard') }}">
             <!-- Made logo take all available space in its section -->
             <img src="{{ Vite::asset('resources/assets-backoffice/img/logoWaste2Product.png') }}" class="navbar-brand-img" style="height: 100%; width: 100%; max-height: 180px; object-fit: contain;" alt="main_logo">
         </a>
@@ -23,13 +23,13 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-dark" href="{{ url('/waste-posts') }}">
+                <a class="nav-link text-dark" href="{{ route('postdechets.index') }}">
                     <i class="material-symbols-rounded opacity-5">delete</i>
                     <span class="nav-link-text ms-1">Waste Posts</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-dark" href="{{ url('/proposals') }}">
+                <a class="nav-link text-dark" href="{{ route('propositions.index') }}">
                     <i class="material-symbols-rounded opacity-5">edit_note</i>
                     <span class="nav-link-text ms-1">Proposals</span>
                 </a>
