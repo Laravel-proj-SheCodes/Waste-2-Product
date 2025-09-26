@@ -22,7 +22,13 @@
                     <span class="nav-link-text ms-1">Profiles</span>
                 </a>
             </li>
-            <li class="nav-item">
+           <li class="nav-item">
+                <a class="nav-link text-dark" href="{{ url('/troc') }}">
+                    <i class="material-symbols-rounded opacity-5">swap_horiz</i>
+                    <span class="nav-link-text ms-2">Posts de Troc</span>
+                </a>
+            </li>
+                <li class="nav-item">
                 <a class="nav-link text-dark" href="{{ route('postdechets.index') }}">
                     <i class="material-symbols-rounded opacity-5">delete</i>
                     <span class="nav-link-text ms-1">Waste Posts</span>
