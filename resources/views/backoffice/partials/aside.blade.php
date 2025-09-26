@@ -35,9 +35,9 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-dark" href="{{ url('/offers') }}">
+                <a class="nav-link text-dark" href="{{ route('annonces.index') }}">
                     <i class="material-symbols-rounded opacity-5">local_offer</i>
-                    <span class="nav-link-text ms-1">Offers</span>
+                    <span class="nav-link-text ms-1">Anoonces</span>
                 </a>
             </li>
             <li class="nav-item">
