@@ -1,9 +1,16 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container">
-    {{-- Logo --}}
-    <a class="navbar-brand d-flex align-items-center" href="{{ route('home') }}">
-      <img src="{{ asset('images/logo.png') }}" alt="Waste2Product Logo" style="width:40px;height:auto;margin-right:10px;">
-      <span class="fw-bold">Waste2Product</span>
+  <div class="container-fluid px-2 px-lg-3">
+    {{-- Logo + marque --}}
+    <a class="navbar-brand d-flex align-items-center" href="{{ route('home') }}" aria-label="Waste2Product">
+      <img
+        src="{{ asset('images/logo-w2p.png') }}"
+        alt="Waste2Product logo"
+        class="brand-logo me-2"
+        width="40" height="40"
+        loading="eager" decoding="async"
+        onerror="this.style.display='none';"
+      >
+      <span class="fw-bold text-white">Waste2Product</span>
     </a>
 
     {{-- Toggler (mobile) --}}
@@ -16,14 +23,13 @@
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav ms-auto align-items-lg-center">
 
-        {{-- Home toujours visible --}}
+        {{-- Home --}}
         <li class="nav-item">
           <a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">
             Home
           </a>
         </li>
 
-        {{-- Liens visibles uniquement si connecté --}}
         @auth
           {{-- Post-Déchet --}}
           @if (Route::has('front.waste-posts.index'))
@@ -35,7 +41,7 @@
             </li>
           @endif
 
-          {{-- Transformation --}}
+          {{-- Transformation (affiché seulement si la route existe) --}}
           @if (Route::has('front.transformations.index'))
             <li class="nav-item">
               <a class="nav-link {{ request()->routeIs('front.transformations.*') ? 'active' : '' }}"
@@ -78,18 +84,15 @@
             </li>
           @endif
 
-          {{-- Espace avant l’avatar --}}
+          {{-- espace --}}
           <li class="nav-item d-none d-lg-block" style="width:8px;"></li>
 
-          {{-- Avatar (initiales) + menu minimal --}}
+          {{-- Avatar (initiales) --}}
           @php
             $fullName = trim(Auth::user()->name ?? '');
             $parts = preg_split('/\s+/', $fullName);
             $initials = '';
-            foreach ($parts as $p) {
-              if ($p !== '') { $initials .= mb_strtoupper(mb_substr($p,0,1)); }
-              if (mb_strlen($initials) >= 2) break;
-            }
+            foreach ($parts as $p) { if ($p !== '') { $initials .= mb_strtoupper(mb_substr($p,0,1)); } if (mb_strlen($initials) >= 2) break; }
             if ($initials === '') $initials = 'U';
           @endphp
 
@@ -105,9 +108,7 @@
                 <div class="small text-muted">{{ Auth::user()->email }}</div>
               </li>
               <li><hr class="dropdown-divider"></li>
-
               <li><a class="dropdown-item" href="#">Manage profile</a></li>
-
               <li>
                 <form method="POST" action="{{ route('logout') }}">
                   @csrf
@@ -118,7 +119,7 @@
           </li>
         @endauth
 
-        {{-- Boutons invités --}}
+        {{-- Invités --}}
         @guest
           <li class="nav-item ms-3">
             @if (Route::has('login'))
