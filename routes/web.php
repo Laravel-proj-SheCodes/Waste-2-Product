@@ -21,6 +21,9 @@ use App\Http\Controllers\CommandeController;
 use App\Http\Controllers\OffreTrocController;
 use App\Http\Controllers\TransactionTrocController;
 
+/** Donations */
+use App\Http\Controllers\DonationController;
+
 /* =========================
  |  Pages simples
  * ========================= */
@@ -121,4 +124,13 @@ Route::prefix('waste-posts')->name('front.waste-posts.')->group(function () {
     Route::get('/{postDechet}', [PostDechetFrontController::class, 'show'])
         ->whereNumber('postDechet')
         ->name('show');
+});
+
+
+/* =========================
+ |  Donation
+ * ========================= */
+Route::middleware('auth')->group(function () {
+    Route::resource('donations', DonationController::class);
+    Route::get('mes-donations', [DonationController::class, 'mesDonations'])->name('mes-donations');
 });
