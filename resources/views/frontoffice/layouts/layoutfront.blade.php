@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="description" content="" />
         <meta name="author" content="" />
+         <meta name="csrf-token" content="{{ csrf_token() }}"> <!-- 🔹 CSRF ajouté -->
         <title>Business Frontpage - Start Bootstrap Template</title>
         <!-- Favicon -->
         <link rel="icon" type="image/x-icon" href="{{ Vite::asset('resources/assets-frontoffice/favicon.ico') }}" />
@@ -13,6 +14,8 @@
         <!-- Core theme CSS (includes Bootstrap) -->
         @vite(['resources/assets-frontoffice/css/styles.css'])
     </head>
+    @stack('scripts')
+
     <body>
         <!-- Navbar -->
         @include('frontoffice.partials.navbarfront')

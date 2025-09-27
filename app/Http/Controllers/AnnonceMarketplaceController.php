@@ -7,6 +7,7 @@ use App\Models\PostDechet;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class AnnonceMarketplaceController extends Controller
 {
@@ -202,4 +203,31 @@ class AnnonceMarketplaceController extends Controller
 
         return response()->json($annonce);
     }
+
+public function getUserPostDechets(): JsonResponse
+{
+    Log::info('getUserPostDechets called. Authenticated: ' . (Auth::check() ? 'Yes' : 'No') . ', User ID: ' . (Auth::id() ?? 'None'));
+
+    if (!Auth::check()) {
+        Log::warning('Authentication failed for getUserPostDechets');
+        return response()->json([
+            'success' => false,
+            'message' => 'Authentification requise'
+        ], 401);
+    }
+
+    $userId = Auth::id();
+    $postDechets = PostDechet::where('user_id', $userId)
+        ->select('id', 'titre', 'localisation', 'description')
+        ->get();
+
+    Log::info("Retrieved postDechets for user $userId, count: " . $postDechets->count());
+
+    return response()->json([
+        'success' => true,
+        'count'   => $postDechets->count(),
+        'data'    => $postDechets
+    ], 200);
+}
+
 }

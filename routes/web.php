@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PostDechetController;
 use App\Http\Controllers\PropositionController;
 use App\Http\Controllers\AuthenticatedSessionController;
+use Illuminate\Support\Facades\Auth;
 
  
 Route::get('/', function () {
@@ -42,3 +43,10 @@ Route::post('/register', [AuthenticatedSessionController::class, 'registerStore'
 
 // Logout
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+
+
+Route::get('/marketplace', function () {
+    return view('frontoffice.pages.marketplace.marketplace');
+})->name('marketplace');
+
+Route::get('/api/mes-post-dechets', [AnnonceMarketplaceController::class, 'getUserPostDechets'])->name('api.mes-post-dechets');
