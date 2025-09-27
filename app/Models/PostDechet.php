@@ -19,6 +19,19 @@ class PostDechet extends Model
         'photos' => 'array',
     ];
 
+       public function offreTrocs()
+    {
+        return $this->hasMany(OffreTroc::class, 'post_dechet_id');
+    }
     public function user(){ return $this->belongsTo(User::class); }
-    public function propositions(){ return $this->hasMany(Proposition::class, 'post_dechet_id'); }
+    public function propositions(){ return $this->hasMany(Proposition::class, 'post_dechet_id');
+    
+    
+    }
+   
+// Dans app/Models/PostDechet.php - ajouter cette relation
+public function annonceMarketplace()
+{
+    return $this->hasOne(AnnonceMarketplace::class);
+}
 }

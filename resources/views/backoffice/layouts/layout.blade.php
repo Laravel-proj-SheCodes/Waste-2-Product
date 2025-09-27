@@ -9,6 +9,7 @@
     <title>
         Material Dashboard 3 by Creative Tim
     </title>
+    @yield('styles')
     <!-- Fonts and icons -->
     <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
     <!-- Nucleo Icons -->
