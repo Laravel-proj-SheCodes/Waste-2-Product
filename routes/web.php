@@ -24,6 +24,8 @@ use App\Http\Controllers\TransactionTrocController;
 /** Donations */
 use App\Http\Controllers\DonationController;
 
+use App\Http\Controllers\Front\PropositionFrontController;
+
 /* =========================
  |  Pages simples
  * ========================= */
@@ -139,3 +141,17 @@ Route::get('/donate', [DonationController::class, 'frontLanding'])->name('donate
 Route::get('/donate/create', [DonationController::class, 'frontCreate'])->name('donate.create');
 Route::get('/donate/thankyou', [DonationController::class, 'frontThankyou'])->name('donate.thankyou');
 Route::post('/donate/{donation}/take', [DonationController::class, 'takeDonation'])->name('donate.take');
+
+Route::prefix('mes-propositions')
+    ->name('front.propositions.')
+    ->middleware('auth')
+    ->group(function () {
+        Route::get('/',                    [PropositionFrontController::class, 'index'])->name('index');
+        Route::get('/create/{postDechet}', [PropositionFrontController::class, 'create'])->name('create');
+        Route::post('/{postDechet}',       [PropositionFrontController::class, 'store'])->name('store');
+        Route::get('/{proposition}/edit',  [PropositionFrontController::class, 'edit'])->name('edit');
+        Route::put('/{proposition}',       [PropositionFrontController::class, 'update'])->name('update');
+        Route::delete('/{proposition}',    [PropositionFrontController::class, 'destroy'])->name('destroy');
+         Route::get('/recues', [\App\Http\Controllers\Front\PropositionFrontController::class, 'received'])
+             ->name('received');
+    });

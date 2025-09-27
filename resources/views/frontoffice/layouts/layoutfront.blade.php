@@ -33,7 +33,6 @@
     {{-- JS --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     @vite(['resources/assets-frontoffice/js/scripts.js'])
-    <script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script>
 
     {{-- ✅ Les pages peuvent injecter du JS ici --}}
     @stack('scripts')

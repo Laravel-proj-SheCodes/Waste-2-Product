@@ -5,6 +5,7 @@
 
     $photos = is_array($postDechet->photos) ? $postDechet->photos : [];
     $main   = asset('images/placeholder.jpg');
+
     if (count($photos)) {
         $first = ltrim(str_replace('\\','/',$photos[0]), '/');
         if (Storage::disk('public')->exists($first)) {
@@ -13,6 +14,9 @@
             $main = asset('storage/'.$first);
         }
     }
+
+    // Sécuriser la variable $received si le contrôleur ne l'a pas fournie
+    $received = isset($received) ? $received : collect();
 @endphp
 
 @section('content')
@@ -73,7 +77,7 @@
                  onclick="document.getElementById('mainPhoto').src=this.dataset.src;
                           document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active'));
                           this.classList.add('active');"
-                 onerror="this.onerror=null;this.src='{{ asset('images/placeholder.jpg') }}';">
+                 onerror="this.onerror=null;this.src='{{ asset('images/placeholder.jpg') }}';" alt="miniature">
           @endforeach
         </div>
       @endif
@@ -96,18 +100,82 @@
 
         @auth
           @if(auth()->id() === $postDechet->user_id)
+            {{-- Propriétaire : actions d’édition --}}
             <div class="d-flex gap-2 mt-2">
-              <a href="{{ route('front.waste-posts.edit', $postDechet) }}" class="btn btn-outline-success">Modifier</a>
+              <a href="{{ route('front.waste-posts.edit', $postDechet) }}" class="btn btn-outline-success">
+                Modifier
+              </a>
               <form method="POST" action="{{ route('front.waste-posts.destroy', $postDechet) }}"
                     onsubmit="return confirm('Supprimer ce post ?');">
-                @csrf @method('DELETE')
+                @csrf
+                @method('DELETE')
                 <button class="btn btn-outline-danger" type="submit">Supprimer</button>
               </form>
             </div>
+          @else
+            {{-- Utilisateur connecté mais NON propriétaire : bouton Proposer --}}
+            @if (Route::has('front.propositions.create'))
+              <a href="{{ route('front.propositions.create', $postDechet) }}"
+                 class="btn btn-success w-100 mt-2">
+                Faire une proposition
+              </a>
+            @endif
           @endif
+        @else
+          {{-- Invité : incitation à se connecter pour proposer --}}
+          <a href="{{ route('login') }}" class="btn btn-outline-success w-100 mt-2">
+            Connectez-vous pour proposer
+          </a>
         @endauth
       </div>
     </div>
   </div>
+
+  {{-- =========================
+       Propositions reçues (propriétaire uniquement)
+  ========================= --}}
+  @auth
+    @if(auth()->id() === $postDechet->user_id)
+      <div class="mt-4">
+        <h3 class="h5 mb-3">Propositions reçues</h3>
+
+        @if($received->isEmpty())
+          <div class="alert alert-light border">Aucune proposition reçue pour le moment.</div>
+        @else
+          <div class="list-group">
+            @foreach($received as $prop)
+              <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <div class="fw-semibold">
+                      {{ $prop->user->name ?? 'Utilisateur' }}
+                      <span class="badge ms-2
+                        @switch($prop->statut)
+                          @case('acceptee') bg-success @break
+                          @case('refusee')  bg-danger  @break
+                          @default         bg-secondary
+                        @endswitch">
+                        {{ str_replace('_',' ', $prop->statut ?? 'en_attente') }}
+                      </span>
+                    </div>
+                    <div class="text-muted small">
+                      {{ $prop->created_at ? $prop->created_at->diffForHumans() : ($prop->date_proposition ? \Carbon\Carbon::parse($prop->date_proposition)->diffForHumans() : '') }}
+                    </div>
+                    <div class="mt-2">
+                      {!! nl2br(e($prop->description)) !!}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            @endforeach
+          </div>
+
+          <a href="{{ route('front.propositions.index') }}" class="btn btn-outline-success mt-3">
+            Voir toutes mes propositions
+          </a>
+        @endif
+      </div>
+    @endif
+  @endauth
 </div>
 @endsection
