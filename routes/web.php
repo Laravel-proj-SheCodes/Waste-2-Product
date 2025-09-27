@@ -58,9 +58,12 @@ Route::patch('annonces/{annonce}/statut', [AnnonceMarketplaceController::class, 
  |  Troc – Backoffice
  * ========================= */
 Route::resource('transactions-troc', TransactionTrocController::class);
+
+
 Route::get('/marketplace', function () {
     return view('frontoffice.pages.marketplace.marketplace');
 })->name('marketplace');
+
 Route::get('/api/mes-post-dechets', [AnnonceMarketplaceController::class, 'getUserPostDechets'])->name('api.mes-post-dechets');
 
 
@@ -96,13 +99,6 @@ Route::prefix('home/offres-troc')->group(function () {
     Route::patch('/{id}/statut', [OffreTrocController::class, 'updateStatutFront'])->name('offres-troc.update-statut.front');
 });
 
-/* =========================
- |  Liens placeholder (si besoin)
- * ========================= */
-Route::view('/transformations', 'frontoffice.pages.stub')->name('transformations.index');
-Route::view('/donations', 'frontoffice.pages.stub')->name('donations.index');
-Route::view('/marketplace', 'frontoffice.pages.stub')->name('marketplace.index');
-// ⚠️ pas de Route::view('/troc', ...) pour éviter le conflit avec /troc ci-dessus
 
 /* =========================
  |  Frontoffice Waste Posts (CRUD)

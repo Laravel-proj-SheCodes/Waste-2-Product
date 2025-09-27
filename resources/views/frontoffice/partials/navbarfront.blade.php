@@ -28,10 +28,7 @@
 
                 {{-- Les gestions : visibles uniquement si connecté --}}
                 @auth
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('troc.*') ? 'active' : '' }}"
-                           href="{{ route('troc.index') }}">Troc</a>
-                    </li>
+                  
                   <li class="nav-item">
   <a class="nav-link {{ request()->routeIs('front.waste-posts.*') ? 'active' : '' }}"
  href="{{ route('front.waste-posts.index') }}">
@@ -42,18 +39,7 @@
 
 
 
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('transformations.*') ? 'active' : '' }}"
-                           href="{{ route('transformations.index') }}">Transformation</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('donations.*') ? 'active' : '' }}"
-                           href="{{ route('donations.index') }}">Donation management</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('marketplace.*') ? 'active' : '' }}"
-                           href="{{ route('marketplace.index') }}">Marketplace management</a>
-                    </li>
+               
 
                     {{-- Espace avant l’avatar --}}
                     <li class="nav-item d-none d-lg-block" style="width:8px;"></li>
