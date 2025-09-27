@@ -12,7 +12,18 @@ class PostDechetController extends Controller
         $posts = PostDechet::latest()->paginate(10);
         return view('backoffice.pages.postdechets.index', compact('posts'));
     }
-
+    public function indexTroc()
+    {
+        $posts = PostDechet::where('type_post', 'troc')->latest()->paginate(10);
+        // dd($posts->first()->photos); // Décommente pour déboguer si besoin
+        return view('backoffice.pages.postdechets.troc-index', compact('posts'));
+    }
+        public function indexTrocFront()
+    {
+        $posts = PostDechet::where('type_post', 'troc')->latest()->paginate(10);
+        // dd($posts->first()->photos); // Décommente pour déboguer si besoin
+        return view('frontoffice.pages.postdechets.troc-index', compact('posts'));
+    }
     public function create(){
         return view('backoffice.pages.postdechets.create');
     }
@@ -57,4 +68,17 @@ class PostDechetController extends Controller
         $postdechet->delete();
         return back()->with('ok','Post supprimé');
     }
+    public function showOffres($post)
+    {
+        $post = PostDechet::with('offreTrocs')->findOrFail($post);
+        $offres = $post->offreTrocs; // Relation avec OffreTroc
+        return view('backoffice.pages.offres-troc.post-offres', compact('post', 'offres'));
+    }
+        public function showOffresFront($postId)
+    {
+        $post = PostDechet::with('offreTrocs')->findOrFail($postId);
+        $offres = $post->offreTrocs;
+        return view('frontoffice.pages.offres-troc.post-offres', compact('post', 'offres'));
+    }
+
 }

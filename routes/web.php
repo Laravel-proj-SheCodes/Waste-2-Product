@@ -1,52 +1,128 @@
 <?php
 
-use App\Http\Controllers\AnnonceMarketplaceController;
-use App\Http\Controllers\CommandeController;
 use Illuminate\Support\Facades\Route;
+
+/** Backoffice contrôleurs existants */
 use App\Http\Controllers\PostDechetController;
 use App\Http\Controllers\PropositionController;
+
+/** Auth */
 use App\Http\Controllers\AuthenticatedSessionController;
 use Illuminate\Support\Facades\Auth;
 
- 
-Route::get('/', function () {
-    return view('welcome');
+/** Front waste-posts */
+use App\Http\Controllers\Front\PostDechetFrontController;
 
-});
+/** Marketplace */
+use App\Http\Controllers\AnnonceMarketplaceController;
+use App\Http\Controllers\CommandeController;
 
-Route::get('/dashboard', function () {
-    return view('backoffice.pages.dashboard');
-})->name('dashboard');
+/** Troc */
+use App\Http\Controllers\OffreTrocController;
+use App\Http\Controllers\TransactionTrocController;
 
-Route::get('/home', function () {
-    return view('frontoffice.pages.home');
-})->name('home');
+/* =========================
+ |  Pages simples
+ * ========================= */
+Route::get('/', fn () => view('welcome'));
+Route::get('/home', fn () => view('frontoffice.pages.home'))->name('home');
+
+/* =========================
+ |  Backoffice commun
+ * ========================= */
+Route::get('/dashboard', fn () => view('backoffice.pages.dashboard'))->name('dashboard');
 
 Route::resource('postdechets', PostDechetController::class);
 Route::resource('propositions', PropositionController::class);
-// <CHANGE> Ajouter les nouvelles routes resource
+
+/* =========================
+ |  Authentification
+ * ========================= */
+Route::get('/login',  [AuthenticatedSessionController::class, 'create'])->name('login');
+Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
+Route::get('/register',  [AuthenticatedSessionController::class, 'register'])->name('register');
+Route::post('/register', [AuthenticatedSessionController::class, 'registerStore'])->name('register.store');
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+
+/* =========================
+ |  Marketplace
+ * ========================= */
 Route::resource('annonces', AnnonceMarketplaceController::class);
 Route::resource('commandes', CommandeController::class);
-
-// <CHANGE> Ajouter les routes personnalisées
 Route::get('mes-annonces', [AnnonceMarketplaceController::class, 'mesAnnonces'])->name('mes-annonces');
 Route::get('mes-commandes', [CommandeController::class, 'mesCommandes'])->name('mes-commandes');
 Route::get('commandes-recues', [CommandeController::class, 'commandesRecues'])->name('commandes-recues');
 Route::patch('annonces/{annonce}/statut', [AnnonceMarketplaceController::class, 'updateStatut'])->name('annonces.statut');
-// Login
-Route::get('/login',  [AuthenticatedSessionController::class, 'create'])->name('login');
-Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
 
-// Register
-Route::get('/register',  [AuthenticatedSessionController::class, 'register'])->name('register');
-Route::post('/register', [AuthenticatedSessionController::class, 'registerStore'])->name('register.store');
-
-// Logout
-Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
-
-
+/* =========================
+ |  Troc – Backoffice
+ * ========================= */
+Route::resource('transactions-troc', TransactionTrocController::class);
 Route::get('/marketplace', function () {
     return view('frontoffice.pages.marketplace.marketplace');
 })->name('marketplace');
-
 Route::get('/api/mes-post-dechets', [AnnonceMarketplaceController::class, 'getUserPostDechets'])->name('api.mes-post-dechets');
+
+
+
+
+Route::get('/troc', [PostDechetController::class, 'indexTroc'])->name('postdechets.troc');
+Route::get('/postdechets/{post}/offres', [PostDechetController::class, 'showOffres'])->name('postdechets.offres');
+
+/* OffreTroc Backoffice */
+Route::prefix('offres-troc')->group(function () {
+    Route::get('/', [OffreTrocController::class, 'index'])->name('offres-troc.index');
+    Route::get('/create/{postId}', [OffreTrocController::class, 'create'])->name('offres-troc.create');
+    Route::post('/{postId}', [OffreTrocController::class, 'store'])->name('offres-troc.store');
+    Route::get('/{postId}', [OffreTrocController::class, 'show'])->name('offres-troc.show');
+    Route::patch('/{id}/statut', [OffreTrocController::class, 'updateStatut'])->name('offres-troc.update-statut');
+    Route::get('/{id}/edit', [OffreTrocController::class, 'edit'])->name('offres-troc.edit');
+    Route::put('/{id}', [OffreTrocController::class, 'update'])->name('offres-troc.update');
+    Route::delete('/{id}', [OffreTrocController::class, 'destroy'])->name('offres-troc.destroy');
+});
+
+/* =========================
+ |  Troc – Frontoffice
+ * ========================= */
+Route::get('/home/troc', [PostDechetController::class, 'indexTrocFront'])->name('postdechets.troc.front');
+Route::get('/home/postdechets/{post}/offres', [PostDechetController::class, 'showOffresFront'])->name('postdechets.offres.front');
+
+/* OffreTroc Frontoffice */
+Route::prefix('home/offres-troc')->group(function () {
+    Route::get('/', [OffreTrocController::class, 'indexFront'])->name('offres-troc.index.front');
+    Route::get('/create/{postId}', [OffreTrocController::class, 'createFront'])->name('offres-troc.create.front');
+    Route::post('/{postId}', [OffreTrocController::class, 'storeFront'])->name('offres-troc.store.front');
+    Route::get('/{postId}', [OffreTrocController::class, 'showFront'])->name('offres-troc.show.front');
+    Route::patch('/{id}/statut', [OffreTrocController::class, 'updateStatutFront'])->name('offres-troc.update-statut.front');
+});
+
+/* =========================
+ |  Liens placeholder (si besoin)
+ * ========================= */
+Route::view('/transformations', 'frontoffice.pages.stub')->name('transformations.index');
+Route::view('/donations', 'frontoffice.pages.stub')->name('donations.index');
+Route::view('/marketplace', 'frontoffice.pages.stub')->name('marketplace.index');
+// ⚠️ pas de Route::view('/troc', ...) pour éviter le conflit avec /troc ci-dessus
+
+/* =========================
+ |  Frontoffice Waste Posts (CRUD)
+ * ========================= */
+Route::prefix('waste-posts')->name('front.waste-posts.')->group(function () {
+    // Public
+    Route::get('/', [PostDechetFrontController::class, 'index'])->name('index');
+
+    // Protégé
+    Route::middleware('auth')->group(function () {
+        Route::get('/create', [PostDechetFrontController::class, 'create'])->name('create');
+        Route::post('/',      [PostDechetFrontController::class, 'store'])->name('store');
+
+        Route::get('/{postDechet}/edit', [PostDechetFrontController::class, 'edit'])->name('edit');
+        Route::put('/{postDechet}',      [PostDechetFrontController::class, 'update'])->name('update');
+        Route::delete('/{postDechet}',   [PostDechetFrontController::class, 'destroy'])->name('destroy');
+    });
+
+    // Show public (contrainte pour ne pas “manger” /create)
+    Route::get('/{postDechet}', [PostDechetFrontController::class, 'show'])
+        ->whereNumber('postDechet')
+        ->name('show');
+});
