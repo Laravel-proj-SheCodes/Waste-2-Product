@@ -53,6 +53,13 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link text-dark" href="{{ route('donations.index') }}">
+                    <i class="material-symbols-rounded opacity-5">volunteer_activism</i>
+                    <span class="nav-link-text ms-1">Donations</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
                 <a class="nav-link text-dark" href="{{ url('/commands') }}">
                     <i class="material-symbols-rounded opacity-5">list_alt</i>
                     <span class="nav-link-text ms-1">Commands</span>

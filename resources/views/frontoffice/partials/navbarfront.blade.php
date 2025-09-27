@@ -30,11 +30,18 @@
                 @auth
                   
                   <li class="nav-item">
-  <a class="nav-link {{ request()->routeIs('front.waste-posts.*') ? 'active' : '' }}"
- href="{{ route('front.waste-posts.index') }}">
-     Post-Déchet
- </a>
-</li>
+                    <a class="nav-link {{ request()->routeIs('front.waste-posts.*') ? 'active' : '' }}"
+                    href="{{ route('front.waste-posts.index') }}">
+                        Post-Déchet
+                    </a>
+                  </li>
+                  <!-- Donation -->
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('donate.*') ? 'active' : '' }}"
+                        href="{{ route('donate.donationpage') }}">
+                            Donation
+                        </a>
+                    </li>
 
 
 

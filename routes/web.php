@@ -134,3 +134,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('donations', DonationController::class);
     Route::get('mes-donations', [DonationController::class, 'mesDonations'])->name('mes-donations');
 });
+// Frontoffice donation routes
+Route::get('/donate', [DonationController::class, 'frontLanding'])->name('donate.donationpage');
+Route::get('/donate/create', [DonationController::class, 'frontCreate'])->name('donate.create');
+Route::get('/donate/thankyou', [DonationController::class, 'frontThankyou'])->name('donate.thankyou');
+Route::post('/donate/{donation}/take', [DonationController::class, 'takeDonation'])->name('donate.take');

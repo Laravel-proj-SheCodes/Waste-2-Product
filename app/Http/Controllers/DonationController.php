@@ -23,6 +23,7 @@ class DonationController extends Controller
             'total' => Donation::count(),
             'pending' => Donation::where('status', 'pending')->count(),
             'accepted' => Donation::where('status', 'accepted')->count(),
+
         ];
 
         if ($request->wantsJson() || $request->ajax()) {
@@ -74,6 +75,11 @@ class DonationController extends Controller
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json($donation->load('user'), 201);
+        }
+
+        // Check if submission came from frontoffice
+        if ($request->input('from_front')) {
+            return redirect()->route('donate.thankyou')->with('success', 'Donation submitted successfully!');
         }
 
         return redirect()->route('donations.index')->with('success', 'Donation submitted successfully!');
@@ -129,7 +135,7 @@ class DonationController extends Controller
             'type' => 'sometimes|in:recyclable,renewable',
             'donation_date' => 'sometimes|date',
             'description' => 'nullable|string',
-            'status' => 'sometimes|in:pending,accepted,rejected',
+            'status' => 'sometimes|in:pending,accepted,rejected,taken',
         ]);
 
         $donation->update($request->only(['location', 'product_name', 'quantity', 'type', 'description', 'donation_date', 'status']));
@@ -183,5 +189,58 @@ class DonationController extends Controller
             ->get();
 
         return response()->json($donations);
+    }
+
+    /**
+     * Frontoffice landing page for donations.
+     */
+    public function frontLanding()
+    {
+        $acceptedDonations = $this->getAcceptedDonations();
+        return view('frontoffice.pages.donations.donationpage', compact('acceptedDonations'));
+    }
+
+    /**
+     * Frontoffice form for creating a new donation.
+     */
+    public function frontCreate()
+    {
+        return view('frontoffice.pages.donations.create');
+    }
+
+    /**
+     * Frontoffice thank you page after donation.
+     */
+    public function frontThankyou()
+    {
+        return view('frontoffice.pages.donations.thankyou');
+    }
+
+    /**
+     * Fetch accepted donations for the frontoffice donationpage page.
+     */
+    protected function getAcceptedDonations()
+    {
+        return Donation::where('status', 'accepted')
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    /**
+     * Mark a donation as taken by updating its status.
+     */
+    public function takeDonation(Donation $donation)
+    {
+        if (!Auth::check()) {
+            return redirect()->route('donate.donationpage')->with('error', 'Authentification requise');
+        }
+
+        if ($donation->status !== 'accepted') {
+            return redirect()->route('donate.donationpage')->with('error', 'This donation is not available to take.');
+        }
+
+        $donation->update(['status' => 'taken', 'taken_by_user_id' => Auth::id()]);
+        return redirect()->route('donate.donationpage')->with('success', 'Donation taken successfully!');
     }
 }

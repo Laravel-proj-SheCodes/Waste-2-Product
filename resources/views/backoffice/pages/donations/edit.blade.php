@@ -153,14 +153,18 @@
                                             name="status" 
                                             class="form-select form-control-lg border-2 @error('status') is-invalid @enderror">
                                         <option value="pending" {{ old('status', $donation->status) == 'pending' ? 'selected' : '' }}>
-                                            <i class="fas fa-clock"></i> En attente
+                                            <i class="fas fa-clock"></i> pending
                                         </option>
                                         <option value="accepted" {{ old('status', $donation->status) == 'accepted' ? 'selected' : '' }}>
-                                            <i class="fas fa-check"></i> Acceptée
+                                            <i class="fas fa-check"></i> accepted
                                         </option>
                                         <option value="rejected" {{ old('status', $donation->status) == 'rejected' ? 'selected' : '' }}>
-                                            <i class="fas fa-times"></i> Rejetée
+                                            <i class="fas fa-times"></i> rejected
                                         </option>
+                                        <option value="taken" {{ old('status', $donation->status) == 'taken' ? 'selected' : '' }}>
+                                            <i class="fas fa-flag-checkered"></i> taken
+                                        </option>
+
                                     </select>
                                     @error('status')
                                         <div class="invalid-feedback">{{ $message }}</div>
