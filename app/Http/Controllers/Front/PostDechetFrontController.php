@@ -38,10 +38,12 @@ class PostDechetFrontController extends Controller
         // Upload de 1..n photos (input name="photos[]")
         if ($request->hasFile('photos')) {
             $paths = [];
-            foreach ($request->file('photos') as $file) {
-                $paths[] = $file->store('posts', 'public');
-            }
-            $data['photos'] = $paths;
+foreach ($request->file('photos') as $file) {
+    $stored = $file->store('posts', 'public');        // ex: posts/abc.jpg
+    $paths[] = str_replace('\\', '/', $stored);       // sécurité Windows
+}
+$data['photos'] = $paths;
+
         }
 
         $post = PostDechet::create($data);
