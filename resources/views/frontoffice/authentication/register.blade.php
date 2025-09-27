@@ -13,7 +13,7 @@
                     <div class="card shadow-lg border-0 rounded-4">
                         <div class="card-body p-4 p-md-5">
                             <div class="text-center mb-4">
-                                <img src="{{ asset('images/logo.png') }}" alt="Logo" style="height:56px" class="mb-2">
+                                <img src="{{ asset('images/logo-w2p.png') }}" alt="Logo" style="height:56px" class="mb-2">
                                 <div class="fs-5 fw-semibold">Waste2Product</div>
                             </div>
 

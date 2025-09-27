@@ -29,8 +29,9 @@ use App\Http\Controllers\Front\PropositionFrontController;
 /* =========================
  |  Pages simples
  * ========================= */
-Route::get('/', fn () => view('welcome'));
-Route::get('/home', fn () => view('frontoffice.pages.home'))->name('home');
+Route::view('/home', 'frontoffice.pages.home')->name('home');
+Route::get('/', fn () => redirect()->route('home'));
+
 
 /* =========================
  |  Backoffice commun
