@@ -77,10 +77,10 @@
                                                 <a href="{{ route('donations.edit', $donation) }}" class="btn btn-link text-warning text-sm mb-0" data-toggle="tooltip" data-original-title="Edit Donation">
                                                     <i class="material-symbols-rounded">edit</i>
                                                 </a>
-                                                <form action="{{ route('donations.destroy', $donation) }}" method="POST" style="display:inline;">
+                                                <form action="{{ route('donations.destroy', $donation) }}" method="POST" class="delete-form d-inline">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-link text-danger text-sm mb-0" data-toggle="tooltip" data-original-title="Delete Donation" onclick="return confirm('Voulez-vous vraiment supprimer cette donation ?')">
+                                                    <button type="button" class="btn btn-link text-danger text-sm mb-0 delete-btn">
                                                         <i class="material-symbols-rounded">delete</i>
                                                     </button>
                                                 </form>
@@ -98,4 +98,30 @@
             </div>
         </div>
     </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                let form = this.closest('form');
+
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "This donation will be permanently deleted!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+    });
+</script>
+
 @endsection
