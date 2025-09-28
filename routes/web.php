@@ -3,6 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PostDechetController;
 use App\Http\Controllers\PropositionController;
+use App\Http\Controllers\PropositionTransformationController;
+use App\Http\Controllers\ProduitTransformeController;
+use App\Http\Controllers\ProcessusTransformationController;
 
  
 Route::get('/', function () {
@@ -20,3 +23,12 @@ Route::get('/home', function () {
 
 Route::resource('postdechets', PostDechetController::class);
 Route::resource('propositions', PropositionController::class);
+
+// Proposals (transformator)
+Route::resource('proposition-transformations', PropositionTransformationController::class);
+
+// Processes
+Route::resource('processus-transformations', ProcessusTransformationController::class);
+
+// Products
+Route::resource('produit-transformes', ProduitTransformeController::class);
