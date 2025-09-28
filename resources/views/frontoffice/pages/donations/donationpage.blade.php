@@ -36,19 +36,15 @@
                                     </ul>
                                 </div>
                                 <div class="card-footer bg-transparent border-0 text-center p-3">
-                                    <form action="{{ route('donate.take', $donation) }}" method="POST" id="takeDonationForm_{{ $donation->id }}">
+                                    <form action="{{ route('donations.request', $donation) }}" method="POST" id="requestDonationForm_{{ $donation->id }}">
                                         @csrf
-                                        @method('POST')
-                                        <button type="button" class="btn btn-success w-100 rounded-3 take-donation-btn" data-bs-toggle="modal" data-bs-target="#confirmTakeModal_{{ $donation->id }}" style="transition: all 0.3s ease;">
-                                            Take Donation
-                                        </button>
+                                        <button type="button" class="btn btn-success w-100 rounded-3 request-donation-btn" data-bs-toggle="modal" data-bs-target="#confirmRequestModal_{{ $donation->id }}">Request Donation</button>
                                     </form>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Custom Confirmation Modal -->
-                        <div class="modal fade" id="confirmTakeModal_{{ $donation->id }}" tabindex="-1" aria-labelledby="confirmTakeModalLabel_{{ $donation->id }}" aria-hidden="true">
+                        <div class="modal fade" id="confirmRequestModal_{{ $donation->id }}" tabindex="-1" aria-labelledby="confirmRequestModalLabel_{{ $donation->id }}" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-centered">
                                 <div class="modal-content bg-light rounded-4 shadow-lg">
                                     <div class="modal-header border-0">
@@ -58,11 +54,11 @@
                                         <div class="heart-animation mb-4">
                                             <div class="heart"></div>
                                         </div>
-                                        <h4 class="modal-title text-success fw-bold" id="confirmTakeModalLabel_{{ $donation->id }}">Confirm Your Kind Action</h4>
-                                        <p class="text-muted mb-4">Are you sure you want to take <strong>{{ $donation->product_name }}</strong>? This generous act will help nurture our planet—thank you for your care!</p>
+                                        <h4 class="modal-title text-success fw-bold" id="confirmRequestModalLabel_{{ $donation->id }}">Confirm Your Request</h4>
+                                        <p class="text-muted mb-4">Are you sure you want to request <strong>{{ $donation->product_name }}</strong>? Your request will be sent to the donor for approval.</p>
                                         <div class="d-flex justify-content-center gap-3">
                                             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                                            <button type="submit" class="btn btn-success confirm-take-btn" form="takeDonationForm_{{ $donation->id }}">Yes, Take It!</button>
+                                            <button type="submit" class="btn btn-success confirm-request-btn" form="requestDonationForm_{{ $donation->id }}">Yes, Request It!</button>
                                         </div>
                                     </div>
                                 </div>
@@ -203,11 +199,23 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.take-donation-btn').forEach(button => {
+        document.querySelectorAll('.request-donation-btn').forEach(button => {
             button.addEventListener('click', function () {
-                const formId = this.closest('form').id;
-                const confirmButton = document.querySelector(`#${formId} + .modal .confirm-take-btn`);
-                confirmButton.setAttribute('form', formId);
+                const form = this.closest('form');
+                const formId = form.id;
+                const donationId = formId.replace('requestDonationForm_', '');
+                const confirmButton = document.querySelector(`#confirmRequestModal_${donationId} .confirm-request-btn`);
+                if (confirmButton) {
+                    // Remove any existing event listeners to prevent duplicates
+                    confirmButton.removeEventListener('click', submitForm);
+                    // Add new event listener to submit the form
+                    confirmButton.addEventListener('click', submitForm);
+                    function submitForm() {
+                        document.getElementById(formId).submit();
+                    }
+                } else {
+                    console.error('Confirm button not found for form:', formId);
+                }
             });
         });
     });

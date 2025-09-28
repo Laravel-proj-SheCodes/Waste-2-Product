@@ -77,6 +77,9 @@
                                                 <a href="{{ route('donations.edit', $donation) }}" class="btn btn-link text-warning text-sm mb-0" data-toggle="tooltip" data-original-title="Edit Donation">
                                                     <i class="material-symbols-rounded">edit</i>
                                                 </a>
+                                                <a href="{{ route('donations.showRequests', $donation) }}" class="btn btn-link text-primary text-sm mb-0" data-toggle="tooltip" data-original-title="View Requests">
+                                                    <i class="material-symbols-rounded">group</i>
+                                                </a>
                                                 <form action="{{ route('donations.destroy', $donation) }}" method="POST" class="delete-form d-inline">
                                                     @csrf
                                                     @method('DELETE')
