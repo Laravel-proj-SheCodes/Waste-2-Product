@@ -181,3 +181,4 @@ Route::prefix('home/transactions-troc')
         Route::get('/{id}/edit', [TransactionTrocController::class, 'editFront'])->name('edit.front');
         Route::put('/{id}', [TransactionTrocController::class, 'updateFront'])->name('update.front');
     });
+    Route::post('/favorites/toggle/{post}', [PostDechetController::class, 'toggleFavorite'])->name('favorites.toggle');

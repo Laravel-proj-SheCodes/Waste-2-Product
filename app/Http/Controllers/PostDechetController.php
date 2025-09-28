@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PostDechet;
 use App\Http\Requests\StorePostDechetRequest;
 use App\Http\Requests\UpdatePostDechetRequest;
+use Illuminate\Support\Facades\Auth;
 
 class PostDechetController extends Controller
 {
@@ -80,5 +81,16 @@ class PostDechetController extends Controller
         $offres = $post->offreTrocs;
         return view('frontoffice.pages.offres-troc.post-offres', compact('post', 'offres'));
     }
-
+// Nouvelle méthode pour toggle favori
+    public function toggleFavorite(PostDechet $post)
+    {
+        $user = Auth::user();
+        if ($user->favorites()->where('post_dechet_id', $post->id)->exists()) {
+            $user->favorites()->detach($post->id);
+            return redirect()->back()->with('success', 'Post supprimé des favoris.');
+        } else {
+            $user->favorites()->attach($post->id);
+            return redirect()->back()->with('success', 'Post ajouté aux favoris.');
+        }
+    }
 }
