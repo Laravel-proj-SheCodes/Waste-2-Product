@@ -56,22 +56,18 @@ Route::get('mes-annonces', [AnnonceMarketplaceController::class, 'mesAnnonces'])
 Route::get('mes-commandes', [CommandeController::class, 'mesCommandes'])->name('mes-commandes');
 Route::get('commandes-recues', [CommandeController::class, 'commandesRecues'])->name('commandes-recues');
 Route::patch('annonces/{annonce}/statut', [AnnonceMarketplaceController::class, 'updateStatut'])->name('annonces.statut');
+Route::get('/marketplace', function () {
+    return view('frontoffice.pages.marketplace.marketplace');
+})->name('marketplace');
+Route::get('/commandes', function () {
+    return view('frontoffice.pages.commandes.commandes');
+})->name('commandes');
+Route::get('/api/mes-post-dechets', [AnnonceMarketplaceController::class, 'getUserPostDechets'])->name('api.mes-post-dechets');
 
 /* =========================
  |  Troc – Backoffice
  * ========================= */
 Route::resource('transactions-troc', TransactionTrocController::class);
-
-
-Route::get('/marketplace', function () {
-    return view('frontoffice.pages.marketplace.marketplace');
-})->name('marketplace');
-
-Route::get('/api/mes-post-dechets', [AnnonceMarketplaceController::class, 'getUserPostDechets'])->name('api.mes-post-dechets');
-
-
-
-
 Route::get('/troc', [PostDechetController::class, 'indexTroc'])->name('postdechets.troc');
 Route::get('/postdechets/{post}/offres', [PostDechetController::class, 'showOffres'])->name('postdechets.offres');
 
