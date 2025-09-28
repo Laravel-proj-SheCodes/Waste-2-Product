@@ -109,6 +109,8 @@
               </li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="#">Manage profile</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="/home/transactions-troc">Mes Transactions</a></li>
               <li>
                 <form method="POST" action="{{ route('logout') }}">
                   @csrf
