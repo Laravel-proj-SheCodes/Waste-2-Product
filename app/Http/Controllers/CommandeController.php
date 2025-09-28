@@ -14,25 +14,25 @@ class CommandeController extends Controller
     /**
      * Display a listing of all orders (admin)
      */
-    public function index(Request $request)
-    {
-        $commandes = Commande::with(['annonceMarketplace.postDechet', 'acheteur'])
-                           ->orderBy('date_commande', 'desc')
-                           ->paginate(10);
+  public function index(Request $request)
+{
+    $commandes = Commande::with(['annonceMarketplace.postDechet', 'acheteur'])
+                       ->orderBy('date_commande', 'desc')
+                       ->paginate(10);
 
-        $stats = [
-            'total' => Commande::count(),
-            'en_attente' => Commande::where('statut_commande', 'en_attente')->count(),
-            'confirmee' => Commande::where('statut_commande', 'confirmee')->count(),
-            'livree' => Commande::where('statut_commande', 'livree')->count(),
-        ];
+    $stats = [
+        'total' => Commande::count(),
+        'en_attente' => Commande::where('statut_commande', 'en_attente')->count(),
+        'confirmee' => Commande::where('statut_commande', 'confirmee')->count(),
+        'livree' => Commande::where('statut_commande', 'livree')->count(),
+    ];
 
-        if ($request->wantsJson() || $request->ajax()) {
-            return response()->json($commandes);
-        }
-
-        return view('backoffice.pages.commandes.index', compact('commandes', 'stats'));
+    if ($request->wantsJson() || $request->ajax()) {
+        return response()->json($commandes);
     }
+
+    return view('backoffice.pages.commandes.index', compact('commandes', 'stats'));
+}
 
     /**
      * Store a newly created order
@@ -368,3 +368,7 @@ class CommandeController extends Controller
         return $this->update($request->merge(['statut_commande' => $request->statut]), $commande);
     }
 }
+
+
+
+

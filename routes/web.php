@@ -63,9 +63,10 @@ Route::patch('annonces/{annonce}/statut', [AnnonceMarketplaceController::class, 
 Route::get('/marketplace', function () {
     return view('frontoffice.pages.marketplace.marketplace');
 })->name('marketplace');
-Route::get('/commandes', function () {
+Route::get('/commandes-page', function () {
     return view('frontoffice.pages.commandes.commandes');
-})->name('commandes');
+})->name('commandes.page');
+
 Route::get('/api/mes-post-dechets', [AnnonceMarketplaceController::class, 'getUserPostDechets'])->name('api.mes-post-dechets');
 
 /* =========================

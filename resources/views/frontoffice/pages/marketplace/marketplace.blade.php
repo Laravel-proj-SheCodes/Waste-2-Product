@@ -663,7 +663,7 @@ function setupOrderHandlers() {
             if (data.error) {
                 showAlert(data.error, 'danger');
             } else {
-                showAlert('Commande passée avec succès! Vous pouvez suivre son statut dans <a href="/commandes" class="alert-link">vos commandes</a>.', 'success');
+                showAlert('Commande passée avec succès! Vous pouvez suivre son statut dans <a href="/commandes-page" class="alert-link">vos commandes</a>.', 'success');
                 bootstrap.Modal.getInstance(document.getElementById('orderModal')).hide();
                 // Refresh announcements to update stock
                 loadAllAnnonces();
