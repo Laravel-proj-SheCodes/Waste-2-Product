@@ -28,6 +28,7 @@
                                         <tr>
                                             <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">ID</th>
                                             <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Requester</th>
+                                            <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Email</th>
                                             <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Status</th>
                                             <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Actions</th>
                                         </tr>
@@ -44,6 +45,9 @@
                                                 </td>
                                                 <td>
                                                     <p class="text-sm font-weight-bold mb-0">{{ $request->user->name ?? 'Anonymous' }}</p>
+                                                </td>
+                                                <td>
+                                                    <p class="text-sm text-muted mb-0">{{ $request->user->email ?? 'N/A' }}</p>
                                                 </td>
                                                 <td>
                                                     @if ($request->status === 'accepted')
@@ -84,4 +88,26 @@
             </div>
         </div>
     </div>
+
+    <style>
+        /* Ensure table columns are balanced */
+        .table th, .table td {
+            vertical-align: middle;
+        }
+        .table th {
+            width: 10%; /* ID */
+        }
+        .table th:nth-child(2) {
+            width: 25%; /* Requester */
+        }
+        .table th:nth-child(3) {
+            width: 30%; /* Email */
+        }
+        .table th:nth-child(4) {
+            width: 15%; /* Status */
+        }
+        .table th:nth-child(5) {
+            width: 20%; /* Actions */
+        }
+    </style>
 @endsection

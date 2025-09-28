@@ -86,7 +86,7 @@
                   <li>
                     <a class="dropdown-item {{ request()->routeIs('donate.donationpage') || request()->routeIs('donate.create') || request()->routeIs('donate.thankyou') ? 'active' : '' }}"
                        href="{{ route('donate.donationpage') }}">
-                      Donate
+                      Donation Page
                     </a>
                   </li>
                 @endif

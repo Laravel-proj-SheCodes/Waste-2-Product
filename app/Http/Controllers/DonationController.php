@@ -194,9 +194,36 @@ class DonationController extends Controller
     /**
      * Frontoffice landing page for donations.
      */
-    public function frontLanding()
+    public function frontLanding(Request $request)
     {
-        $acceptedDonations = $this->getAcceptedDonations();
+        $query = Donation::where('status', 'accepted')
+            ->with('user')
+            ->orderBy('created_at', 'desc');
+
+        // Apply search filter for product_name
+        if ($request->filled('search')) {
+            $query->where('product_name', 'like', '%' . $request->input('search') . '%');
+            Log::info('Applying search filter', [
+                'search' => $request->input('search'),
+            ]);
+        }
+
+        // Apply type filter
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+            Log::info('Applying type filter', [
+                'type' => $request->input('type'),
+            ]);
+        }
+
+        $acceptedDonations = $query->get();
+
+        Log::info('Fetched accepted donations', [
+            'count' => $acceptedDonations->count(),
+            'search' => $request->input('search'),
+            'type' => $request->input('type'),
+        ]);
+
         return view('frontoffice.pages.donations.donationpage', compact('acceptedDonations'));
     }
 
@@ -214,17 +241,6 @@ class DonationController extends Controller
     public function frontThankyou()
     {
         return view('frontoffice.pages.donations.thankyou');
-    }
-
-    /**
-     * Fetch accepted donations for the frontoffice donationpage page.
-     */
-    protected function getAcceptedDonations()
-    {
-        return Donation::where('status', 'accepted')
-            ->with('user')
-            ->orderBy('created_at', 'desc')
-            ->get();
     }
 
     /**
