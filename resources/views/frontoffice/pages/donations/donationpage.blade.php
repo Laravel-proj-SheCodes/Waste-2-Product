@@ -4,7 +4,7 @@
     <!-- Hero section (big donation box) -->
     <section class="py-5 border-bottom bg-light">
         <div class="container px-5 my-5 text-center">
-            <img src="{{ asset('storage/assets-frontoffice/img/donimg.jpg') }}" alt="Donation Image" class="img-fluid mb-3" style="max-width: 500px; height: auto;">
+            <img src="{{ Vite::asset('resources/assets-frontoffice/img/donimg.jpg') }}" alt="Donation Image" class="img-fluid mb-3" style="max-width: 500px; height: auto;">
             <h2 class="fw-bolder">Make a Difference with Your Donation</h2>
             <p class="lead mb-4">In today's world, recycling and donating waste products is more important than ever. By donating recyclable or renewable items, you help reduce landfill waste, conserve natural resources, lower pollution, and support sustainable communities. Every donation counts towards a greener planet!</p>
             <a href="{{ route('donate.create') }}" class="btn btn-success btn-lg">Donate Now</a>
@@ -196,7 +196,7 @@
 
     @media (max-width: 768px) {
         .row-cols-md-2 {
-            row-cols-1;
+            column-count: 1;
         }
     }
 </style>
