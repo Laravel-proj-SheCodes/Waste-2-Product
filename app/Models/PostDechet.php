@@ -19,24 +19,40 @@ class PostDechet extends Model
         'photos' => 'array',
     ];
 
-    public function user(){ return $this->belongsTo(User::class); }
-    public function propositions(){ return $this->hasMany(Proposition::class, 'post_dechet_id'); }
+    public function offreTrocs()
+    {
+        return $this->hasMany(OffreTroc::class, 'post_dechet_id');
+    }
 
-   // public function propositions()
-   //{
-    //return $this->hasMany(Proposition::class);
-    //}
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
-public function processusTransformations()
-{
-    return $this->hasManyThrough(
-        ProcessusTransformation::class,
-        PropositionTransformation::class,
-        'proposition_id',              // local key on proposition_transformations -> links to proposition
-        'dechet_entrant_id',           // local key on processus_transformations -> links to post_dechets
-        'id',                          // local key on post_dechets
-        'id'                           // local key on proposition_transformations
-    );
-}
+    public function propositions()
+    {
+        return $this->hasMany(Proposition::class, 'post_dechet_id');
+    }
 
+    public function processusTransformations()
+    {
+        return $this->hasManyThrough(
+            ProcessusTransformation::class,
+            PropositionTransformation::class,
+            'proposition_id',      // foreign key on proposition_transformations -> links to proposition
+            'dechet_entrant_id',    // foreign key on processus_transformations -> links to post_dechets
+            'id',                   // local key on post_dechets
+            'id'                    // local key on proposition_transformations
+        );
+    }
+
+    public function annonceMarketplace()
+    {
+        return $this->hasOne(AnnonceMarketplace::class);
+    }
+
+    public function favoritedBy()
+    {
+        return $this->belongsToMany(User::class, 'favorites', 'post_dechet_id', 'user_id')->withTimestamps();
+    }
 }

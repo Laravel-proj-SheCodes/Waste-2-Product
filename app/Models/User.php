@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role', 
     ];
 
     /**
@@ -33,6 +34,10 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    public function favorites()
+{
+    return $this->belongsToMany(PostDechet::class, 'favorites', 'user_id', 'post_dechet_id')->withTimestamps();
+}
     /**
      * Get the attributes that should be cast.
      *
@@ -45,4 +50,15 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    public function isAdmin(): bool
+{
+    return $this->role === 'admin';
 }
+
+public function isClient(): bool
+{
+    return $this->role === 'client';
+}
+
+}
+

@@ -22,7 +22,20 @@
                     <span class="nav-link-text ms-1">Profiles</span>
                 </a>
             </li>
+           <li class="nav-item">
+                <a class="nav-link text-dark" href="{{ url('/troc') }}">
+                    <i class="material-symbols-rounded opacity-5">swap_horiz</i>
+                    <span class="nav-link-text ms-2">Posts de Troc</span>
+                </a>
+            </li>
             <li class="nav-item">
+                <a class="nav-link text-dark" href="{{ url('/transactions-troc') }}">
+                    <i class="material-symbols-rounded opacity-5">local_shipping</i>
+                    <span class="nav-link-text ms-2">Transactions de Troc</span>
+                </a>
+            </li>
+
+                <li class="nav-item">
                 <a class="nav-link text-dark" href="{{ route('postdechets.index') }}">
                     <i class="material-symbols-rounded opacity-5">delete</i>
                     <span class="nav-link-text ms-1">Waste Posts</span>
@@ -35,9 +48,9 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-dark" href="{{ url('/offers') }}">
+                <a class="nav-link text-dark" href="{{ route('annonces.index') }}">
                     <i class="material-symbols-rounded opacity-5">local_offer</i>
-                    <span class="nav-link-text ms-1">Offers</span>
+                    <span class="nav-link-text ms-1">Anoonces</span>
                 </a>
             </li>
             <li class="nav-item">
@@ -47,7 +60,14 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-dark" href="{{ url('/commands') }}">
+                <a class="nav-link text-dark" href="{{ route('donations.index') }}">
+                    <i class="material-symbols-rounded opacity-5">volunteer_activism</i>
+                    <span class="nav-link-text ms-1">Donations</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link text-dark" href="{{ route('commandes.index')}}">
                     <i class="material-symbols-rounded opacity-5">list_alt</i>
                     <span class="nav-link-text ms-1">Commands</span>
                 </a>
