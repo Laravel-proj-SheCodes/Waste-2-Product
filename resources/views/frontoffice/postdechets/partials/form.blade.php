@@ -24,17 +24,18 @@
 </div>
 
 {{-- Type de post --}}
-<div class="col-md-6">
-    <label class="form-label">Type <span class="text-danger">*</span></label>
-    @php $type = old('type_post', $p->type_post ?? ''); @endphp
-    <select name="type_post" class="form-select" required>
-        <option value="">-- choisir --</option>
-        <option value="don"     {{ $type==='don' ? 'selected' : '' }}>Don</option>
-        <option value="echange" {{ $type==='echange' ? 'selected' : '' }}>Échange</option>
-        <option value="vente"   {{ $type==='vente' ? 'selected' : '' }}>Vente</option>
+  <div class="col-lg-6 mb-3">
+    <label for="type_post" class="form-label">Type <span class="text-danger">*</span></label>
+    <select id="type_post" name="type_post"
+            class="form-select @error('type_post') is-invalid @enderror" required>
+      @foreach(['don','troc','vente','transformation'] as $opt)
+        <option value="{{ $opt }}" @selected(old('type_post',$p->type_post ?? '')==$opt)>
+          {{ ucfirst($opt) }}
+        </option>
+      @endforeach
     </select>
-    @error('type_post') <small class="text-danger">{{ $message }}</small> @enderror
-</div>
+    @error('type_post') <div class="invalid-feedback">{{ $message }}</div> @enderror
+  </div>
 
 {{-- Catégorie --}}
 <div class="col-md-6">
