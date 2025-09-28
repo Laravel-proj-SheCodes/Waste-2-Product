@@ -74,13 +74,31 @@
             </li>
           @endif
 
-          {{-- Donation --}}
-          @if (Route::has('donate.donationpage'))
-            <li class="nav-item">
-              <a class="nav-link {{ request()->routeIs('donate.*') ? 'active' : '' }}"
-                 href="{{ route('donate.donationpage') }}">
+          {{-- Donation Dropdown --}}
+          @if (Route::has('donate.donationpage') || Route::has('donate.myRequests'))
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle {{ request()->routeIs('donate.*') ? 'active' : '' }}"
+                 href="#" id="donationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 Donation
               </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="donationDropdown">
+                @if (Route::has('donate.donationpage'))
+                  <li>
+                    <a class="dropdown-item {{ request()->routeIs('donate.donationpage') || request()->routeIs('donate.create') || request()->routeIs('donate.thankyou') ? 'active' : '' }}"
+                       href="{{ route('donate.donationpage') }}">
+                      Donation Page
+                    </a>
+                  </li>
+                @endif
+                @if (Route::has('donate.myRequests'))
+                  <li>
+                    <a class="dropdown-item {{ request()->routeIs('donate.myRequests') ? 'active' : '' }}"
+                       href="{{ route('donate.myRequests') }}">
+                      My Requests
+                    </a>
+                  </li>
+                @endif
+              </ul>
             </li>
           @endif
 

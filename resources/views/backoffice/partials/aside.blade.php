@@ -28,6 +28,13 @@
                     <span class="nav-link-text ms-2">Posts de Troc</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link text-dark" href="{{ url('/transactions-troc') }}">
+                    <i class="material-symbols-rounded opacity-5">local_shipping</i>
+                    <span class="nav-link-text ms-2">Transactions de Troc</span>
+                </a>
+            </li>
+
                 <li class="nav-item">
                 <a class="nav-link text-dark" href="{{ route('postdechets.index') }}">
                     <i class="material-symbols-rounded opacity-5">delete</i>

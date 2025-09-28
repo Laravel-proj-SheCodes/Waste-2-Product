@@ -11,58 +11,103 @@
         </div>
     </section>
 
-    <!-- Accepted Donations Section -->
+    <!-- Simplified Accepted Donations Section with Search -->
     <section class="py-5 bg-light">
         <div class="container px-5 my-5">
-            <h2 class="fw-bolder text-center mb-5" style="color: #28a745;">Available Donations</h2>
+            <div class="text-center mb-5">
+                <h2 class="fw-bolder mb-3" style="color: #126e27ff;">Available Donations</h2>
+                <p class="text-muted">Discover meaningful donations waiting for a new home</p>
+            </div>
+
+            <!-- Search Form -->
+            <div class="mb-4">
+                <form action="{{ route('donate.donationpage') }}" method="GET" class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label for="search" class="form-label text-muted small">Search by Product Name</label>
+                        <input type="text" class="form-control" id="search" name="search" value="{{ request('search') }}" placeholder="Enter product name...">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="type" class="form-label text-muted small">Filter by Type</label>
+                        <select class="form-select" id="type" name="type">
+                            <option value="" {{ request('type') == '' ? 'selected' : '' }}>All Types</option>
+                            <option value="recyclable" {{ request('type') == 'recyclable' ? 'selected' : '' }}>Recyclable</option>
+                            <option value="renewable" {{ request('type') == 'renewable' ? 'selected' : '' }}>Renewable</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-success w-100 py-2">Search</button>
+                    </div>
+                </form>
+            </div>
+
             @if ($acceptedDonations->isEmpty())
-                <p class="text-center text-muted">No accepted donations available at the moment.</p>
+                <div class="text-center py-5">
+                    <p class="text-muted fs-4">No accepted donations available at the moment.</p>
+                    <p class="text-muted">Check back soon for new opportunities to make a difference!</p>
+                </div>
             @else
-                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
                     @foreach ($acceptedDonations as $donation)
                         <div class="col">
-                            <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden" style="transition: all 0.3s ease;">
-                                <div class="card-body p-4 bg-white">
-                                    <h5 class="card-title text-success fw-bold">{{ $donation->product_name }}</h5>
-                                    <ul class="list-unstyled text-muted mb-0">
-                                        <li><strong>Quantity:</strong> {{ $donation->quantity }}</li>
-                                        <li><strong>Type:</strong> {{ ucfirst($donation->type) }}</li>
-                                        <li><strong>Location:</strong> {{ $donation->location }}</li>
-                                        <li><strong>Date:</strong> {{ $donation->donation_date }}</li>
-                                        <li><strong>Donated by:</strong> {{ $donation->user->name ?? 'Anonymous' }}</li>
-                                        @if ($donation->description)
-                                            <li><strong>Description:</strong> {{ $donation->description }}</li>
-                                        @endif
-                                    </ul>
+                            <div class="card h-100 shadow-sm border-0 rounded-3" style="transition: all 0.3s ease;">
+                                <!-- Simple card header with green background -->
+                                <div class="card-header text-white p-3" style="background-color: #126e27ff;">
+                                    <h5 class="card-title mb-1 fw-bold">{{ $donation->product_name }}</h5>
+                                    <span class="badge bg-white text-success px-2 py-1 rounded-pill">{{ ucfirst($donation->type) }}</span>
                                 </div>
-                                <div class="card-footer bg-transparent border-0 text-center p-3">
-                                    <form action="{{ route('donate.take', $donation) }}" method="POST" id="takeDonationForm_{{ $donation->id }}">
+
+                                <!-- Compact card body with reduced padding -->
+                                <div class="card-body p-3">
+                                    <div class="row g-2 text-sm">
+                                        <div class="col-6">
+                                            <small class="text-muted">Quantity:</small>
+                                            <div class="fw-semibold">{{ $donation->quantity }}</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Location:</small>
+                                            <div class="fw-semibold">{{ $donation->location }}</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Date:</small>
+                                            <div class="fw-semibold">{{ $donation->donation_date }}</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Donor:</small>
+                                            <div class="fw-semibold">{{ $donation->user->name ?? 'Anonymous' }}</div>
+                                        </div>
+                                        @if ($donation->description)
+                                            <div class="col-12 mt-2">
+                                                <small class="text-muted">Description:</small>
+                                                <div class="text-dark">{{ $donation->description }}</div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <!-- Simple card footer with green button -->
+                                <div class="card-footer bg-transparent border-0 p-3">
+                                    <form action="{{ route('donations.request', $donation) }}" method="POST" id="requestDonationForm_{{ $donation->id }}">
                                         @csrf
-                                        @method('POST')
-                                        <button type="button" class="btn btn-success w-100 rounded-3 take-donation-btn" data-bs-toggle="modal" data-bs-target="#confirmTakeModal_{{ $donation->id }}" style="transition: all 0.3s ease;">
-                                            Take Donation
+                                        <button type="button" class="btn btn-success w-100 py-2 request-donation-btn" data-bs-toggle="modal" data-bs-target="#confirmRequestModal_{{ $donation->id }}">
+                                            Request Donation
                                         </button>
                                     </form>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Custom Confirmation Modal -->
-                        <div class="modal fade" id="confirmTakeModal_{{ $donation->id }}" tabindex="-1" aria-labelledby="confirmTakeModalLabel_{{ $donation->id }}" aria-hidden="true">
+                        <div class="modal fade" id="confirmRequestModal_{{ $donation->id }}" tabindex="-1" aria-labelledby="confirmRequestModalLabel_{{ $donation->id }}" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content bg-light rounded-4 shadow-lg">
+                                <div class="modal-content rounded-4 shadow-lg border-0">
                                     <div class="modal-header border-0">
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
-                                    <div class="modal-body text-center p-5">
-                                        <div class="heart-animation mb-4">
-                                            <div class="heart"></div>
-                                        </div>
-                                        <h4 class="modal-title text-success fw-bold" id="confirmTakeModalLabel_{{ $donation->id }}">Confirm Your Kind Action</h4>
-                                        <p class="text-muted mb-4">Are you sure you want to take <strong>{{ $donation->product_name }}</strong>? This generous act will help nurture our planet—thank you for your care!</p>
+                                    <div class="modal-body text-center p-4">
+                                        <h4 class="modal-title text-success fw-bold mb-3" id="confirmRequestModalLabel_{{ $donation->id }}">Confirm Your Request</h4>
+                                        <p class="text-muted mb-4">Are you sure you want to request <strong class="text-success">{{ $donation->product_name }}</strong>? Your request will be sent to the donor for approval.</p>
                                         <div class="d-flex justify-content-center gap-3">
-                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                                            <button type="submit" class="btn btn-success confirm-take-btn" form="takeDonationForm_{{ $donation->id }}">Yes, Take It!</button>
+                                            <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-success px-4 py-2 confirm-request-btn" form="requestDonationForm_{{ $donation->id }}">Yes, Request It!</button>
                                         </div>
                                     </div>
                                 </div>
@@ -105,9 +150,10 @@
 @endsection
 
 <style>
+    /* Simplified styling with no gradients, just green and black colors */
     .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     }
 
     .btn-success:hover {
@@ -115,73 +161,14 @@
         border-color: #1e7e34;
     }
 
-    .card-title {
-        font-size: 1.25rem;
-        margin-bottom: 1rem;
-    }
-
-    .list-unstyled li {
-        padding: 0.25rem 0;
-        border-bottom: 1px solid #eee;
-    }
-
-    .list-unstyled li:last-child {
-        border-bottom: none;
-    }
-
-    /* Heart Animation for Modal */
-    .heart-animation {
-        position: relative;
-        width: 80px;
-        height: 80px;
-        margin: 0 auto;
-    }
-
-    .heart {
-        position: absolute;
-        width: 40px;
-        height: 40px;
-        background-color: #28a745;
-        transform: rotate(-45deg);
-        animation: heartbeat 1.5s infinite;
-        top: 20px;
-        left: 20px;
-    }
-
-    .heart:before,
-    .heart:after {
-        content: "";
-        position: absolute;
-        width: 40px;
-        height: 40px;
-        background-color: #28a745;
-        border-radius: 50%;
-    }
-
-    .heart:before {
-        top: -20px;
-        left: 0;
-    }
-
-    .heart:after {
-        left: 20px;
-        top: 0;
-    }
-
-    @keyframes heartbeat {
-        0% { transform: scale(1) rotate(-45deg); }
-        50% { transform: scale(1.2) rotate(-45deg); }
-        100% { transform: scale(1) rotate(-45deg); }
+    .text-sm {
+        font-size: 0.875rem;
     }
 
     /* Modal Styling */
     .modal-content {
         border: none;
         border-radius: 1rem;
-    }
-
-    .modal-title {
-        font-size: 1.5rem;
     }
 
     .btn-outline-secondary {
@@ -194,6 +181,17 @@
         color: #fff;
     }
 
+    /* Search Form Styling */
+    .form-control, .form-select {
+        border-radius: 0.5rem;
+        border: 1px solid #ced4da;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #126e27ff;
+        box-shadow: 0 0 0 0.2rem rgba(18, 110, 39, 0.25);
+    }
+
     @media (max-width: 768px) {
         .row-cols-md-2 {
             column-count: 1;
@@ -203,11 +201,23 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.take-donation-btn').forEach(button => {
+        document.querySelectorAll('.request-donation-btn').forEach(button => {
             button.addEventListener('click', function () {
-                const formId = this.closest('form').id;
-                const confirmButton = document.querySelector(`#${formId} + .modal .confirm-take-btn`);
-                confirmButton.setAttribute('form', formId);
+                const form = this.closest('form');
+                const formId = form.id;
+                const donationId = formId.replace('requestDonationForm_', '');
+                const confirmButton = document.querySelector(`#confirmRequestModal_${donationId} .confirm-request-btn`);
+                if (confirmButton) {
+                    // Remove any existing event listeners to prevent duplicates
+                    confirmButton.removeEventListener('click', submitForm);
+                    // Add new event listener to submit the form
+                    confirmButton.addEventListener('click', submitForm);
+                    function submitForm() {
+                        document.getElementById(formId).submit();
+                    }
+                } else {
+                    console.error('Confirm button not found for form:', formId);
+                }
             });
         });
     });
