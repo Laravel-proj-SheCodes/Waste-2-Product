@@ -9,16 +9,22 @@ use Illuminate\Support\Facades\Auth;
 
 class TransactionTrocController extends Controller
 {
-    /**
-     * Display a listing of the resource (Backoffice).
-     */
-    public function index()
+public function index()
     {
         $transactions = TransactionTroc::with(['offreTroc.postDechet', 'offreTroc.user', 'utilisateurAcceptant'])->latest()->paginate(10);
         return view('backoffice.pages.transactions-troc.index', compact('transactions'));
     }
 
-    // ... (tes autres méthodes backoffice stubs restent inchangées : create, store, show, edit, destroy)
+    /**
+     * Display the specified resource (Backoffice).
+     */
+    public function show($id)
+    {
+        $transaction = TransactionTroc::with(['offreTroc.postDechet', 'offreTroc.user', 'utilisateurAcceptant'])->findOrFail($id);
+        return view('backoffice.pages.transactions-troc.show', compact('transaction'));
+    }
+
+    // ... (tes autres méthodes backoffice stubs restent inchangées : create, store, edit, destroy)
 
     /**
      * Update the specified resource in storage (Backoffice).
@@ -40,7 +46,7 @@ class TransactionTrocController extends Controller
 
         return response()->json($transaction);
     }
-
+    
     /* =========================
      |  Frontend Methods
      * ========================= */

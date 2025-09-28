@@ -81,16 +81,16 @@ Route::get('/postdechets/{post}/offres', [PostDechetController::class, 'showOffr
 
 /* OffreTroc Backoffice */
 Route::prefix('offres-troc')->group(function () {
-
     Route::get('/', [OffreTrocController::class, 'index'])->name('offres-troc.index');
-        Route::middleware('auth')->group(function () {
-    Route::get('/create/{postId}', [OffreTrocController::class, 'create'])->name('offres-troc.create');
-    Route::post('/{postId}', [OffreTrocController::class, 'store'])->name('offres-troc.store');
-    Route::get('/{postId}', [OffreTrocController::class, 'show'])->name('offres-troc.show');
-    Route::patch('/{id}/statut', [OffreTrocController::class, 'updateStatut'])->name('offres-troc.update-statut');
-    Route::get('/{id}/edit', [OffreTrocController::class, 'edit'])->name('offres-troc.edit');
-    Route::put('/{id}', [OffreTrocController::class, 'update'])->name('offres-troc.update');
-    Route::delete('/{id}', [OffreTrocController::class, 'destroy'])->name('offres-troc.destroy');
+    Route::middleware('auth')->group(function () {
+        Route::get('/create/{postId}', [OffreTrocController::class, 'create'])->name('offres-troc.create');
+        Route::post('/{postId}', [OffreTrocController::class, 'store'])->name('offres-troc.store');
+        Route::get('/{postId}', [OffreTrocController::class, 'show'])->name('offres-troc.show');
+        Route::patch('/{id}/statut', [OffreTrocController::class, 'updateStatut'])->name('offres-troc.update-statut');
+        Route::get('/{id}/edit', [OffreTrocController::class, 'edit'])->name('offres-troc.edit');
+        Route::put('/{id}', [OffreTrocController::class, 'update'])->name('offres-troc.update');
+        Route::delete('/{id}', [OffreTrocController::class, 'destroy'])->name('offres-troc.destroy');
+        Route::delete('/{postId}/{id}/photos/{index}/destroy', [OffreTrocController::class, 'destroyPhoto'])->name('offres-troc.photo-destroy');
     });
 });
 
@@ -182,3 +182,16 @@ Route::prefix('home/transactions-troc')
         Route::put('/{id}', [TransactionTrocController::class, 'updateFront'])->name('update.front');
     });
     Route::post('/favorites/toggle/{post}', [PostDechetController::class, 'toggleFavorite'])->name('favorites.toggle');
+    // Backoffice Routes transaction troc
+Route::prefix('transactions-troc')->group(function () {
+    // List all transactions (Backoffice)
+    Route::get('/', [TransactionTrocController::class, 'index'])->name('transactions-troc.index');
+    
+    // Show transaction details (Backoffice)
+    Route::get('/{id}', [TransactionTrocController::class, 'show'])->name('transactions-troc.show');
+    
+    // Update transaction (Backoffice, assuming it’s used)
+    Route::middleware('auth')->group(function () {
+        Route::put('/{id}', [TransactionTrocController::class, 'update'])->name('transactions-troc.update');
+    });
+});
