@@ -72,20 +72,7 @@
                                         <td class="align-middle text-center">
                                             <span class="text-secondary text-xs font-weight-bold">{{ $annonce->created_at->format('d/m/Y') }}</span>
                                         </td>
-                                        <td class="align-middle">
-                                            <a href="{{ route('annonces.show', $annonce->id) }}" 
-                                               class="text-secondary font-weight-bold text-xs" 
-                                               data-toggle="tooltip" 
-                                               data-original-title="Voir détails">
-                                                Voir
-                                            </a>
-                                            <a href="{{ route('annonces.edit', $annonce->id) }}" 
-                                               class="text-secondary font-weight-bold text-xs ms-2" 
-                                               data-toggle="tooltip" 
-                                               data-original-title="Modifier">
-                                                Modifier
-                                            </a>
-                                        </td>
+                                       
                                     </tr>
                                 @empty
                                     <tr>
