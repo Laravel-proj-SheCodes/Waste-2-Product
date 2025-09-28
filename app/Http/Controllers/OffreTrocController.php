@@ -67,7 +67,6 @@ class OffreTrocController extends Controller
     public function show($postId)
     {
         $post = PostDechet::findOrFail($postId);
-        
         $hasAcceptedOffer = OffreTroc::where('post_dechet_id', $postId)
             ->where(function($query) {
                 $query->where('status', 'accepted')
@@ -87,32 +86,78 @@ class OffreTrocController extends Controller
     public function edit($id)
     {
         $offre = OffreTroc::findOrFail($id);
+        if (Auth::id() !== $offre->user_id) {
+            return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier cette offre.');
+        }
+        if (strtolower($offre->status) === 'accepted') {
+            return redirect()->back()->with('error', 'Vous ne pouvez pas modifier une offre acceptée.');
+        }
         return view('backoffice.pages.offres-troc.edit', compact('offre'));
     }
 
-
     public function update(Request $request, $id)
     {
+        $offre = OffreTroc::findOrFail($id);
+        if (Auth::id() !== $offre->user_id) {
+            return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier cette offre.');
+        }
+        if (strtolower($offre->status) === 'accepted') {
+            return redirect()->back()->with('error', 'Vous ne pouvez pas modifier une offre acceptée.');
+        }
+
         $validated = $request->validate([
             'categorie' => 'required|string',
             'quantite' => 'required|integer|min:1',
             'unite_mesure' => 'required|string',
             'etat' => 'required|string',
             'localisation' => 'required|string',
+            'photos' => 'nullable|array',
+            'photos.*' => 'image|max:2048',
             'description' => 'required|string|max:500',
         ]);
 
-        $offre = OffreTroc::findOrFail($id);
-        $offre->update($validated);
+        $files = $offre->photos ? json_decode($offre->photos, true) : [];
+        if ($request->hasFile('photos')) {
+            // Delete old photos
+            foreach ($files as $photo) {
+                Storage::disk('public')->delete($photo);
+            }
+            $files = [];
+            foreach ($request->file('photos') as $f) {
+                $files[] = $f->store('offres', 'public');
+            }
+        }
 
-        return redirect()->route('offres-troc.index')->with('success', 'Offre mise à jour avec succès');
+        $offre->update([
+            'categorie' => $validated['categorie'],
+            'quantite' => $validated['quantite'],
+            'unite_mesure' => $validated['unite_mesure'],
+            'etat' => $validated['etat'],
+            'localisation' => $validated['localisation'],
+            'photos' => !empty($files) ? json_encode($files) : null,
+            'description' => $validated['description'],
+        ]);
+
+        return redirect()->route('postdechets.offres', $offre->post_dechet_id)->with('success', 'Offre mise à jour avec succès');
     }
 
     public function destroy($id)
     {
         $offre = OffreTroc::findOrFail($id);
-        $offre->delete();
+        if (Auth::id() !== $offre->user_id) {
+            return redirect()->route('offres-troc.index')->with('error', 'Vous n\'êtes pas autorisé à supprimer cette offre.');
+        }
+        if (strtolower($offre->status) === 'accepted') {
+            return redirect()->route('offres-troc.index')->with('error', 'Vous ne pouvez pas supprimer une offre acceptée.');
+        }
 
+        if ($offre->photos) {
+            foreach (json_decode($offre->photos, true) as $photo) {
+                Storage::disk('public')->delete($photo);
+            }
+        }
+
+        $offre->delete();
         return redirect()->route('offres-troc.index')->with('success', 'Offre supprimée avec succès');
     }
 
@@ -123,7 +168,6 @@ class OffreTrocController extends Controller
         ]);
 
         $offre = OffreTroc::findOrFail($id);
-        
         if ($validated['status'] === 'accepted') {
             OffreTroc::where('post_dechet_id', $offre->post_dechet_id)
                 ->where('id', '!=', $id)
@@ -143,6 +187,30 @@ class OffreTrocController extends Controller
         }
 
         return redirect()->back()->with('success', 'Statut mis à jour');
+    }
+
+    public function destroyPhoto(Request $request, $postId, OffreTroc $offre, $index)
+    {
+        if (Auth::id() !== $offre->user_id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        if ($offre->post_dechet_id != $postId) {
+            return response()->json(['success' => false, 'message' => 'Invalid post ID'], 400);
+        }
+
+        if (strtolower($offre->status) === 'accepted') {
+            return response()->json(['success' => false, 'message' => 'Vous ne pouvez pas supprimer une photo d\'une offre acceptée'], 403);
+        }
+
+        $photos = $offre->photos ? json_decode($offre->photos, true) : [];
+        if (isset($photos[$index])) {
+            Storage::disk('public')->delete($photos[$index]);
+            unset($photos[$index]);
+            $offre->update(['photos' => !empty($photos) ? json_encode(array_values($photos)) : null]);
+            return response()->json(['success' => true]);
+        }
+        return response()->json(['success' => false, 'message' => 'Photo non trouvée'], 404);
     }
     /* Front ***** */
     public function indexFront()
