@@ -51,15 +51,34 @@
             </li>
           @endif
 
-          {{-- Marketplace --}}
-          @if (Route::has('marketplace'))
-            <li class="nav-item">
-              <a class="nav-link {{ request()->routeIs('marketplace') ? 'active' : '' }}"
-                 href="{{ route('marketplace') }}">
-                Marketplace
-              </a>
-            </li>
-          @endif
+        {{-- Marketplace Dropdown --}}
+@if (Route::has('marketplace') || Route::has('commandes.index'))
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle {{ request()->routeIs('marketplace') || request()->routeIs('commandes.*') ? 'active' : '' }}"
+           href="#" id="marketplaceDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Marketplace
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="marketplaceDropdown">
+            @if (Route::has('marketplace'))
+                <li>
+                    <a class="dropdown-item {{ request()->routeIs('marketplace') ? 'active' : '' }}"
+                       href="{{ route('marketplace') }}">
+                        Marketplace Home
+                    </a>
+                </li>
+            @endif
+            @if (Route::has('commandes.index'))
+                <li>
+                    <a class="dropdown-item {{ request()->routeIs('commandes.*') ? 'active' : '' }}"
+                       href="{{ route('commandes.page') }}">
+                        My Orders
+                    </a>
+                </li>
+            @endif
+        </ul>
+    </li>
+@endif
+
 
           {{-- Troc (actif sur /home/troc et /home/offres-troc/*) --}}
           @php
@@ -74,13 +93,31 @@
             </li>
           @endif
 
-          {{-- Donation --}}
-          @if (Route::has('donate.donationpage'))
-            <li class="nav-item">
-              <a class="nav-link {{ request()->routeIs('donate.*') ? 'active' : '' }}"
-                 href="{{ route('donate.donationpage') }}">
+          {{-- Donation Dropdown --}}
+          @if (Route::has('donate.donationpage') || Route::has('donate.myRequests'))
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle {{ request()->routeIs('donate.*') ? 'active' : '' }}"
+                 href="#" id="donationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 Donation
               </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="donationDropdown">
+                @if (Route::has('donate.donationpage'))
+                  <li>
+                    <a class="dropdown-item {{ request()->routeIs('donate.donationpage') || request()->routeIs('donate.create') || request()->routeIs('donate.thankyou') ? 'active' : '' }}"
+                       href="{{ route('donate.donationpage') }}">
+                      Donation Page
+                    </a>
+                  </li>
+                @endif
+                @if (Route::has('donate.myRequests'))
+                  <li>
+                    <a class="dropdown-item {{ request()->routeIs('donate.myRequests') ? 'active' : '' }}"
+                       href="{{ route('donate.myRequests') }}">
+                      My Requests
+                    </a>
+                  </li>
+                @endif
+              </ul>
             </li>
           @endif
 

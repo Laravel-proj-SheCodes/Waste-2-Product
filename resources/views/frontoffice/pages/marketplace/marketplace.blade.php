@@ -663,7 +663,7 @@ function setupOrderHandlers() {
             if (data.error) {
                 showAlert(data.error, 'danger');
             } else {
-                showAlert('Commande passée avec succès! Vous pouvez suivre son statut dans <a href="/commandes" class="alert-link">vos commandes</a>.', 'success');
+                showAlert('Commande passée avec succès! Vous pouvez suivre son statut dans <a href="/commandes-page" class="alert-link">vos commandes</a>.', 'success');
                 bootstrap.Modal.getInstance(document.getElementById('orderModal')).hide();
                 // Refresh announcements to update stock
                 loadAllAnnonces();
@@ -749,39 +749,33 @@ function editAnnonce(id, prix, statut) {
 }
 
 function deleteAnnonce(id) {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette annonce?')) {
-        return;
-    }
-    
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette annonce?')) return;
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
     fetch(`/annonces/${id}`, {
         method: 'DELETE',
         headers: {
+            'X-CSRF-TOKEN': csrfToken,
             'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': csrfToken
+            'Accept': 'application/json'
         }
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
+    .then(async response => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Erreur inconnue');
+        return data;
     })
     .then(data => {
-        if (data.error) {
-            showAlert(data.error, 'danger');
-        } else {
-            showAlert('Annonce supprimée avec succès!', 'success');
-            loadMesAnnonces().then(() => {
-                loadAllAnnonces();
-            });
-        }
+        showAlert(data.message || 'Annonce supprimée avec succès!', 'success');
+        loadMesAnnonces().then(() => loadAllAnnonces());
     })
     .catch(error => {
         console.error('Error deleting annonce:', error);
-        showAlert('Erreur lors de la suppression', 'danger');
+        showAlert(error.message || 'Erreur lors de la suppression', 'danger');
     });
 }
+
 
 function getStatusBadgeClass(status) {
     switch(status) {

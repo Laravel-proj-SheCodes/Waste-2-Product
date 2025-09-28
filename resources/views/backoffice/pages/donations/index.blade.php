@@ -26,7 +26,7 @@
                             <table class="table align-items-center mb-0">
                                 <thead>
                                     <tr>
-                                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">ID</th>
+                                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Donor</th>
                                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Product</th>
                                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Quantity</th>
                                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Type</th>
@@ -42,7 +42,8 @@
                                             <td>
                                                 <div class="d-flex px-2 py-1">
                                                     <div class="d-flex flex-column justify-content-center">
-                                                        <h6 class="mb-0 text-sm">{{ $donation->id }}</h6>
+                                                        <p class="text-sm font-weight-bold mb-0">{{ $donation->user->name ?? 'Anonymous' }}</p>
+                                                        <p class="text-xs text-muted mb-0">{{ $donation->user->email ?? 'N/A' }}</p>
                                                     </div>
                                                 </div>
                                             </td>
@@ -77,6 +78,9 @@
                                                 <a href="{{ route('donations.edit', $donation) }}" class="btn btn-link text-warning text-sm mb-0" data-toggle="tooltip" data-original-title="Edit Donation">
                                                     <i class="material-symbols-rounded">edit</i>
                                                 </a>
+                                                <a href="{{ route('donations.showRequests', $donation) }}" class="btn btn-link text-primary text-sm mb-0" data-toggle="tooltip" data-original-title="View Requests">
+                                                    <i class="material-symbols-rounded">group</i>
+                                                </a>
                                                 <form action="{{ route('donations.destroy', $donation) }}" method="POST" class="delete-form d-inline">
                                                     @csrf
                                                     @method('DELETE')
@@ -98,6 +102,42 @@
             </div>
         </div>
     </div>
+    <style>
+        /* Balance table columns */
+        .table th, .table td {
+            vertical-align: middle;
+        }
+        .table th:nth-child(1) {
+            width: 25%; /* Donor */
+        }
+        .table th:nth-child(2) {
+            width: 20%; /* Product */
+        }
+        .table th:nth-child(3) {
+            width: 10%; /* Quantity */
+        }
+        .table th:nth-child(4) {
+            width: 10%; /* Type */
+        }
+        .table th:nth-child(5) {
+            width: 15%; /* Location */
+        }
+        .table th:nth-child(6) {
+            width: 10%; /* Date */
+        }
+        .table th:nth-child(7) {
+            width: 10%; /* Status */
+        }
+        .table th:nth-child(8) {
+            width: 20%; /* Actions */
+        }
+        .table td:nth-child(1) p.text-xs {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    </style>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.delete-btn').forEach(button => {
@@ -122,6 +162,5 @@
             });
         });
     });
-</script>
-
+    </script>
 @endsection

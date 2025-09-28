@@ -36,7 +36,7 @@
                                                          onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM5OTk5OTkiLz4KPC9zdmc+';">
                                                 </div>
                                                 <div class="d-flex flex-column justify-content-center">
-                                                    <h6 class="mb-0 text-sm">{{ $annonce->postDechet->user->nom ?? 'Utilisateur inconnu' }}</h6>
+                                                    <h6 class="mb-0 text-sm">{{ $annonce->postDechet->user->name ?? 'Utilisateur inconnu' }}</h6>
                                                     <p class="text-xs text-secondary mb-0">{{ $annonce->postDechet->user->email ?? '' }}</p>
                                                 </div>
                                             </div>

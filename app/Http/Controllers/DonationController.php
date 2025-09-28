@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Donation;
+use App\Models\DonationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +24,6 @@ class DonationController extends Controller
             'total' => Donation::count(),
             'pending' => Donation::where('status', 'pending')->count(),
             'accepted' => Donation::where('status', 'accepted')->count(),
-
         ];
 
         if ($request->wantsJson() || $request->ajax()) {
@@ -194,9 +194,36 @@ class DonationController extends Controller
     /**
      * Frontoffice landing page for donations.
      */
-    public function frontLanding()
+    public function frontLanding(Request $request)
     {
-        $acceptedDonations = $this->getAcceptedDonations();
+        $query = Donation::where('status', 'accepted')
+            ->with('user')
+            ->orderBy('created_at', 'desc');
+
+        // Apply search filter for product_name
+        if ($request->filled('search')) {
+            $query->where('product_name', 'like', '%' . $request->input('search') . '%');
+            Log::info('Applying search filter', [
+                'search' => $request->input('search'),
+            ]);
+        }
+
+        // Apply type filter
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+            Log::info('Applying type filter', [
+                'type' => $request->input('type'),
+            ]);
+        }
+
+        $acceptedDonations = $query->get();
+
+        Log::info('Fetched accepted donations', [
+            'count' => $acceptedDonations->count(),
+            'search' => $request->input('search'),
+            'type' => $request->input('type'),
+        ]);
+
         return view('frontoffice.pages.donations.donationpage', compact('acceptedDonations'));
     }
 
@@ -217,17 +244,6 @@ class DonationController extends Controller
     }
 
     /**
-     * Fetch accepted donations for the frontoffice donationpage page.
-     */
-    protected function getAcceptedDonations()
-    {
-        return Donation::where('status', 'accepted')
-            ->with('user')
-            ->orderBy('created_at', 'desc')
-            ->get();
-    }
-
-    /**
      * Mark a donation as taken by updating its status.
      */
     public function takeDonation(Donation $donation)
@@ -240,7 +256,161 @@ class DonationController extends Controller
             return redirect()->route('donate.donationpage')->with('error', 'This donation is not available to take.');
         }
 
+        // Check if there are any accepted requests
+        $acceptedRequest = DonationRequest::where('donation_id', $donation->id)
+            ->where('status', 'accepted')
+            ->first();
+
+        if ($acceptedRequest) {
+            return redirect()->route('donate.donationpage')->with('error', 'This donation has already been assigned via a request.');
+        }
+
         $donation->update(['status' => 'taken', 'taken_by_user_id' => Auth::id()]);
         return redirect()->route('donate.donationpage')->with('success', 'Donation taken successfully!');
+    }
+
+    /**
+     * Request a donation.
+     */
+    public function requestDonation(Request $request, Donation $donation)
+    {
+        if (!Auth::check()) {
+            return $request->wantsJson() || $request->ajax()
+                ? response()->json(['error' => 'Authentification requise'], 401)
+                : redirect()->route('login')->with('error', 'Authentification requise');
+        }
+
+        if ($donation->user_id === Auth::id()) {
+            return $request->wantsJson() || $request->ajax()
+                ? response()->json(['error' => 'Vous ne pouvez pas demander votre propre don'], 403)
+                : redirect()->route('donate.donationpage')->with('error', 'Vous ne pouvez pas demander votre propre don');
+        }
+
+        if ($donation->status !== 'accepted') {
+            return $request->wantsJson() || $request->ajax()
+                ? response()->json(['error' => 'Ce don n\'est pas disponible pour une demande'], 403)
+                : redirect()->route('donate.donationpage')->with('error', 'Ce don n\'est pas disponible pour une demande');
+        }
+
+        // Check if user already requested this donation
+        $existingRequest = DonationRequest::where('donation_id', $donation->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if ($existingRequest) {
+            return $request->wantsJson() || $request->ajax()
+                ? response()->json(['error' => 'Vous avez déjà demandé ce don'], 403)
+                : redirect()->route('donate.donationpage')->with('error', 'Vous avez déjà demandé ce don');
+        }
+
+        $donationRequest = DonationRequest::create([
+            'donation_id' => $donation->id,
+            'user_id' => Auth::id(),
+            'status' => 'pending',
+        ]);
+
+        return $request->wantsJson() || $request->ajax()
+            ? response()->json($donationRequest->load('donation', 'user'), 201)
+            : redirect()->route('donate.donationpage')->with('success', 'Demande de don envoyée avec succès !');
+    }
+
+    /**
+     * Display donation requests for a donation (for the owner).
+     */
+    public function showRequests(Donation $donation, Request $request)
+    {
+        if (!Auth::check() || $donation->user_id !== Auth::id()) {
+            return $request->wantsJson() || $request->ajax()
+                ? response()->json(['error' => 'Non autorisé'], 403)
+                : redirect()->route('donations.index')->with('error', 'Non autorisé');
+        }
+
+        $requests = DonationRequest::where('donation_id', $donation->id)
+            ->with('user')
+            ->get();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json($requests);
+        }
+
+        return view('backoffice.pages.donations.requests', compact('donation', 'requests'));
+    }
+
+    /**
+     * Accept a donation request.
+     */
+    public function acceptRequest(DonationRequest $donationRequest, Request $request)
+    {
+        if (!Auth::check() || $donationRequest->donation->user_id !== Auth::id()) {
+            return $request->wantsJson() || $request->ajax()
+                ? response()->json(['error' => 'Non autorisé'], 403)
+                : redirect()->route('donations.index')->with('error', 'Non autorisé');
+        }
+
+        if ($donationRequest->status !== 'pending') {
+            return $request->wantsJson() || $request->ajax()
+                ? response()->json(['error' => 'Cette demande a déjà été traitée'], 403)
+                : redirect()->route('donations.showRequests', $donationRequest->donation_id)->with('error', 'Cette demande a déjà été traitée');
+        }
+
+        $donationRequest->update(['status' => 'accepted']);
+        $donationRequest->donation->update(['status' => 'taken', 'taken_by_user_id' => $donationRequest->user_id]);
+
+        // Reject other pending requests for this donation
+        DonationRequest::where('donation_id', $donationRequest->donation_id)
+            ->where('id', '!=', $donationRequest->id)
+            ->where('status', 'pending')
+            ->update(['status' => 'rejected']);
+
+        return $request->wantsJson() || $request->ajax()
+            ? response()->json(['message' => 'Demande acceptée avec succès'])
+            : redirect()->route('donations.showRequests', $donationRequest->donation_id)->with('success', 'Demande acceptée avec succès');
+    }
+
+    /**
+     * Reject a donation request.
+     */
+    public function rejectRequest(DonationRequest $donationRequest, Request $request)
+    {
+        if (!Auth::check() || $donationRequest->donation->user_id !== Auth::id()) {
+            return $request->wantsJson() || $request->ajax()
+                ? response()->json(['error' => 'Non autorisé'], 403)
+                : redirect()->route('donations.index')->with('error', 'Non autorisé');
+        }
+
+        if ($donationRequest->status !== 'pending') {
+            return $request->wantsJson() || $request->ajax()
+                ? response()->json(['error' => 'Cette demande a déjà été traitée'], 403)
+                : redirect()->route('donations.showRequests', $donationRequest->donation_id)->with('error', 'Cette demande a déjà été traitée');
+        }
+
+        $donationRequest->update(['status' => 'rejected']);
+
+        return $request->wantsJson() || $request->ajax()
+            ? response()->json(['message' => 'Demande rejetée avec succès'])
+            : redirect()->route('donations.showRequests', $donationRequest->donation_id)->with('success', 'Demande rejetée avec succès');
+    }
+
+    /**
+     * Display the user's donation requests.
+     */
+    public function myRequests(Request $request)
+    {
+        if (!Auth::check()) {
+            return $request->wantsJson() || $request->ajax()
+                ? response()->json(['error' => 'Authentification requise'], 401)
+                : redirect()->route('login')->with('error', 'Authentification requise');
+        }
+
+        $requests = DonationRequest::where('user_id', Auth::id())
+            ->with('donation', 'donation.user')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json($requests);
+        }
+
+        return view('frontoffice.pages.donations.my_requests', compact('requests'));
     }
 }

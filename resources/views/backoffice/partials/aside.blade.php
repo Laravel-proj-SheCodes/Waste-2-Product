@@ -67,7 +67,7 @@
             </li>
 
             <li class="nav-item">
-                <a class="nav-link text-dark" href="{{ url('/commands') }}">
+                <a class="nav-link text-dark" href="{{ route('commandes.index')}}">
                     <i class="material-symbols-rounded opacity-5">list_alt</i>
                     <span class="nav-link-text ms-1">Commands</span>
                 </a>

@@ -63,9 +63,10 @@ Route::patch('annonces/{annonce}/statut', [AnnonceMarketplaceController::class, 
 Route::get('/marketplace', function () {
     return view('frontoffice.pages.marketplace.marketplace');
 })->name('marketplace');
-Route::get('/commandes', function () {
+Route::get('/commandes-page', function () {
     return view('frontoffice.pages.commandes.commandes');
-})->name('commandes');
+})->name('commandes.page');
+
 Route::get('/api/mes-post-dechets', [AnnonceMarketplaceController::class, 'getUserPostDechets'])->name('api.mes-post-dechets');
 
 /* =========================
@@ -145,13 +146,22 @@ Route::prefix('waste-posts')->name('front.waste-posts.')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::resource('donations', DonationController::class);
     Route::get('mes-donations', [DonationController::class, 'mesDonations'])->name('mes-donations');
+    Route::get('donations/{donation}/requests', [DonationController::class, 'showRequests'])->name('donations.showRequests');
+    Route::post('donations/{donation}/request', [DonationController::class, 'requestDonation'])->name('donations.request');
+    Route::post('donation-requests/{donationRequest}/accept', [DonationController::class, 'acceptRequest'])->name('donation-requests.accept');
+    Route::post('donation-requests/{donationRequest}/reject', [DonationController::class, 'rejectRequest'])->name('donation-requests.reject');
+    Route::get('my-requests', [DonationController::class, 'myRequests'])->name('donate.myRequests');
 });
+
 // Frontoffice donation routes
 Route::get('/donate', [DonationController::class, 'frontLanding'])->name('donate.donationpage');
 Route::get('/donate/create', [DonationController::class, 'frontCreate'])->name('donate.create');
 Route::get('/donate/thankyou', [DonationController::class, 'frontThankyou'])->name('donate.thankyou');
 Route::post('/donate/{donation}/take', [DonationController::class, 'takeDonation'])->name('donate.take');
 
+/* =========================
+ |  Propositions – Frontoffice
+ * ========================= */
 Route::prefix('mes-propositions')
     ->name('front.propositions.')
     ->middleware('auth')
