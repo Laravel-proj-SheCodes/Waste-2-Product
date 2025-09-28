@@ -105,7 +105,7 @@ Route::get('/home/offres-troc/thankyou', function() {
 /* OffreTroc Frontoffice */
 Route::prefix('home/offres-troc')->group(function () {
     Route::middleware('auth')->group(function () {
-        Route::get('/', [OffreTrocController::class, 'indexFront'])->name('offres-troc.index.front');
+        Route::get('/', [OffreTrocController::class, 'indexFront'])->name('postdechets.troc-index.front');
         Route::get('/create/{postId}', [OffreTrocController::class, 'createFront'])->name('offres-troc.create.front');
         Route::post('/{postId}', [OffreTrocController::class, 'storeFront'])->name('offres-troc.storeFront');
         Route::get('/{postId}', [OffreTrocController::class, 'showFront'])->name('offres-troc.show.front');
