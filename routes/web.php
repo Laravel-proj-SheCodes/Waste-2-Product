@@ -98,19 +98,23 @@ Route::prefix('offres-troc')->group(function () {
  * ========================= */
 Route::get('/home/troc', [PostDechetController::class, 'indexTrocFront'])->name('postdechets.troc.front');
 Route::get('/home/postdechets/{post}/offres', [PostDechetController::class, 'showOffresFront'])->name('postdechets.offres.front');
+Route::get('/home/offres-troc/thankyou', function() {
+    return view('frontoffice.pages.offres-troc.thankyou');
+})->name('offres-troc.thankyou');
 
 /* OffreTroc Frontoffice */
 Route::prefix('home/offres-troc')->group(function () {
     Route::middleware('auth')->group(function () {
-
-    Route::get('/', [OffreTrocController::class, 'indexFront'])->name('offres-troc.index.front');
-    Route::get('/create/{postId}', [OffreTrocController::class, 'createFront'])->name('offres-troc.create.front');
-    Route::post('/{postId}', [OffreTrocController::class, 'storeFront'])->name('offres-troc.store.front');
-    Route::get('/{postId}', [OffreTrocController::class, 'showFront'])->name('offres-troc.show.front');
-    Route::patch('/{id}/statut', [OffreTrocController::class, 'updateStatutFront'])->name('offres-troc.update-statut.front');
+        Route::get('/', [OffreTrocController::class, 'indexFront'])->name('offres-troc.index.front');
+        Route::get('/create/{postId}', [OffreTrocController::class, 'createFront'])->name('offres-troc.create.front');
+        Route::post('/{postId}', [OffreTrocController::class, 'storeFront'])->name('offres-troc.storeFront');
+        Route::get('/{postId}', [OffreTrocController::class, 'showFront'])->name('offres-troc.show.front');
+        Route::patch('/{id}/statut', [OffreTrocController::class, 'updateStatutFront'])->name('offres-troc.update-statut.front');
+        Route::get('/{id}/edit', [OffreTrocController::class, 'editFront'])->name('offres-troc.edit.front');
+        Route::put('/{id}', [OffreTrocController::class, 'updateFront'])->name('offres-troc.update.front');
+        Route::delete('/{id}', [OffreTrocController::class, 'destroyFront'])->name('offres-troc.destroy.front');
     });
 });
-
 
 /* =========================
  |  Frontoffice Waste Posts (CRUD)
@@ -123,6 +127,8 @@ Route::prefix('waste-posts')->name('front.waste-posts.')->group(function () {
     Route::middleware('auth')->group(function () {
         Route::get('/create', [PostDechetFrontController::class, 'create'])->name('create');
         Route::post('/',      [PostDechetFrontController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [OffreTrocController::class, 'editFront'])->name('offres-troc.edit.front');
+        Route::put('/{id}', [OffreTrocController::class, 'updateFront'])->name('offres-troc.update.front');
 
         Route::get('/{postDechet}/edit', [PostDechetFrontController::class, 'edit'])->name('edit');
         Route::put('/{postDechet}',      [PostDechetFrontController::class, 'update'])->name('update');
