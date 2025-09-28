@@ -80,7 +80,9 @@ Route::get('/postdechets/{post}/offres', [PostDechetController::class, 'showOffr
 
 /* OffreTroc Backoffice */
 Route::prefix('offres-troc')->group(function () {
+
     Route::get('/', [OffreTrocController::class, 'index'])->name('offres-troc.index');
+        Route::middleware('auth')->group(function () {
     Route::get('/create/{postId}', [OffreTrocController::class, 'create'])->name('offres-troc.create');
     Route::post('/{postId}', [OffreTrocController::class, 'store'])->name('offres-troc.store');
     Route::get('/{postId}', [OffreTrocController::class, 'show'])->name('offres-troc.show');
@@ -88,6 +90,7 @@ Route::prefix('offres-troc')->group(function () {
     Route::get('/{id}/edit', [OffreTrocController::class, 'edit'])->name('offres-troc.edit');
     Route::put('/{id}', [OffreTrocController::class, 'update'])->name('offres-troc.update');
     Route::delete('/{id}', [OffreTrocController::class, 'destroy'])->name('offres-troc.destroy');
+    });
 });
 
 /* =========================
@@ -98,11 +101,14 @@ Route::get('/home/postdechets/{post}/offres', [PostDechetController::class, 'sho
 
 /* OffreTroc Frontoffice */
 Route::prefix('home/offres-troc')->group(function () {
+    Route::middleware('auth')->group(function () {
+
     Route::get('/', [OffreTrocController::class, 'indexFront'])->name('offres-troc.index.front');
     Route::get('/create/{postId}', [OffreTrocController::class, 'createFront'])->name('offres-troc.create.front');
     Route::post('/{postId}', [OffreTrocController::class, 'storeFront'])->name('offres-troc.store.front');
     Route::get('/{postId}', [OffreTrocController::class, 'showFront'])->name('offres-troc.show.front');
     Route::patch('/{id}/statut', [OffreTrocController::class, 'updateStatutFront'])->name('offres-troc.update-statut.front');
+    });
 });
 
 
