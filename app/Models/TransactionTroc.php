@@ -19,6 +19,11 @@ class TransactionTroc extends Model
         'evaluation_mutuelle',
     ];
 
+    // Ajout du cast pour traiter date_accord comme une date (Carbon)
+    protected $casts = [
+        'date_accord' => 'datetime',
+    ];
+
     // Relations
     public function offreTroc()
     {

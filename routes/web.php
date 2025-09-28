@@ -26,6 +26,7 @@ use App\Http\Controllers\DonationController;
 
 use App\Http\Controllers\Front\PropositionFrontController;
 
+
 /* =========================
  |  Pages simples
  * ========================= */
@@ -167,4 +168,16 @@ Route::prefix('mes-propositions')
         Route::delete('/{proposition}',    [PropositionFrontController::class, 'destroy'])->name('destroy');
          Route::get('/recues', [\App\Http\Controllers\Front\PropositionFrontController::class, 'received'])
              ->name('received');
+    });
+    /* =========================
+ |  Transactions Troc – Frontoffice
+ * ========================= */
+Route::prefix('home/transactions-troc')
+    ->name('transactions-troc.')
+    ->middleware('auth')
+    ->group(function () {
+        Route::get('/', [TransactionTrocController::class, 'indexFront'])->name('index.front');
+        Route::get('/{id}', [TransactionTrocController::class, 'showFront'])->name('show.front');
+        Route::get('/{id}/edit', [TransactionTrocController::class, 'editFront'])->name('edit.front');
+        Route::put('/{id}', [TransactionTrocController::class, 'updateFront'])->name('update.front');
     });
