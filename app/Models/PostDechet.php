@@ -34,4 +34,9 @@ public function annonceMarketplace()
 {
     return $this->hasOne(AnnonceMarketplace::class);
 }
+// Nouvelle relation pour les favoris
+    public function favoritedBy()
+    {
+        return $this->belongsToMany(User::class, 'favorites', 'post_dechet_id', 'user_id')->withTimestamps();
+    }
 }

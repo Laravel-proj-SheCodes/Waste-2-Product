@@ -34,6 +34,10 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    public function favorites()
+{
+    return $this->belongsToMany(PostDechet::class, 'favorites', 'user_id', 'post_dechet_id')->withTimestamps();
+}
     /**
      * Get the attributes that should be cast.
      *
@@ -57,3 +61,4 @@ public function isClient(): bool
 }
 
 }
+

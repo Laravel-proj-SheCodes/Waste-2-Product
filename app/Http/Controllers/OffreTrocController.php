@@ -6,7 +6,8 @@ use App\Models\OffreTroc;
 use App\Models\PostDechet;
 use App\Models\TransactionTroc;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage; // Add this import
 class OffreTrocController extends Controller
 {
     // Backoffice methods
@@ -89,6 +90,7 @@ class OffreTrocController extends Controller
         return view('backoffice.pages.offres-troc.edit', compact('offre'));
     }
 
+
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
@@ -142,8 +144,7 @@ class OffreTrocController extends Controller
 
         return redirect()->back()->with('success', 'Statut mis à jour');
     }
-
-    // Frontoffice methods
+    /* Front ***** */
     public function indexFront()
     {
         $offres = OffreTroc::with('postDechet', 'user')->latest()->paginate(10);
@@ -161,6 +162,13 @@ class OffreTrocController extends Controller
 
     public function storeFront(Request $request, $postId)
     {
+        if (!Auth::check()) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Authentification requise'], 401);
+            }
+            return redirect()->route('login')->with('error', 'Authentification requise');
+        }
+
         $validated = $request->validate([
             'categorie' => 'required|string',
             'quantite' => 'required|integer|min:1',
@@ -181,7 +189,7 @@ class OffreTrocController extends Controller
             }
         }
 
-        OffreTroc::create([
+        $offre = OffreTroc::create([
             'categorie' => $validated['categorie'],
             'quantite' => $validated['quantite'],
             'unite_mesure' => $validated['unite_mesure'],
@@ -189,12 +197,20 @@ class OffreTrocController extends Controller
             'localisation' => $validated['localisation'],
             'photos' => !empty($files) ? json_encode($files) : null,
             'description' => $validated['description'],
-            'user_id' => auth()->id() ?? 1,
+            'user_id' => Auth::id(),
             'post_dechet_id' => $postId,
             'status' => 'en_attente',
         ]);
 
-        return redirect()->route('offres-troc.index.front')->with('success', 'Offre créée avec succès');
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json($offre->load('user', 'post'), 201);
+        }
+
+        if ($request->input('from_front')) {
+            return redirect()->route('offres-troc.thankyou')->with('success', 'Offre créée avec succès !');
+        }
+
+        return redirect()->route('offres-troc.index.front')->with('success', 'Offre créée avec succès !');
     }
 
     public function showFront($postId)
@@ -217,6 +233,96 @@ class OffreTrocController extends Controller
         return view('frontoffice.pages.offres-troc.show', compact('post', 'offres', 'hasAcceptedOffer'));
     }
 
+    public function editFront($id)
+    {
+        $offre = OffreTroc::findOrFail($id);
+
+        if (Auth::id() !== $offre->user_id) {
+            return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier cette offre.');
+        }
+
+        if (strtolower($offre->status) === 'accepted') {
+            return redirect()->back()->with('error', 'Vous ne pouvez pas modifier une offre acceptée.');
+        }
+
+        return view('frontoffice.pages.offres-troc.edit', compact('offre'));
+    }
+
+    public function updateFront(Request $request, $id)
+    {
+        $offre = OffreTroc::findOrFail($id);
+
+        if (Auth::id() !== $offre->user_id) {
+            return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier cette offre.');
+        }
+
+        if (strtolower($offre->status) === 'accepted') {
+            return redirect()->back()->with('error', 'Vous ne pouvez pas modifier une offre acceptée.');
+        }
+
+        $validated = $request->validate([
+            'categorie' => 'required|string',
+            'quantite' => 'required|integer|min:1',
+            'unite_mesure' => 'required|string',
+            'etat' => 'required|string',
+            'localisation' => 'required|string',
+            'description' => 'required|string|max:500',
+            'photos' => 'nullable|array',
+            'photos.*' => 'image|max:2048',
+        ]);
+
+        $files = $offre->photos ? json_decode($offre->photos, true) : [];
+        if ($request->hasFile('photos')) {
+            // Delete old photos
+            foreach ($files as $photo) {
+                Storage::delete('public/' . $photo);
+            }
+            $files = [];
+            foreach ($request->file('photos') as $f) {
+                $files[] = $f->store('offres', 'public');
+            }
+        }
+
+        $offre->update([
+            'categorie' => $validated['categorie'],
+            'quantite' => $validated['quantite'],
+            'unite_mesure' => $validated['unite_mesure'],
+            'etat' => $validated['etat'],
+            'localisation' => $validated['localisation'],
+            'photos' => !empty($files) ? json_encode($files) : null,
+            'description' => $validated['description'],
+        ]);
+
+        return redirect()->route('postdechets.offres.front', $offre->post_dechet_id)->with('success', 'Offre mise à jour avec succès');
+    }
+
+public function destroyFront($id)
+    {
+        $offre = OffreTroc::findOrFail($id);
+
+        if (Auth::id() !== $offre->user_id) {
+            return redirect()->route('postdechets.offres.front', $offre->post_dechet_id)
+                ->with('error', 'Vous n\'êtes pas autorisé à supprimer cette offre.');
+        }
+
+        if (strtolower($offre->status) === 'accepted') {
+            return redirect()->route('postdechets.offres.front', $offre->post_dechet_id)
+                ->with('error', 'Vous ne pouvez pas supprimer une offre acceptée.');
+        }
+
+        // Delete associated photos
+        if ($offre->photos) {
+            foreach (json_decode($offre->photos, true) as $photo) {
+                Storage::disk('public')->delete($photo); // Error here if Storage is not imported
+            }
+        }
+
+        $offre->delete();
+
+        return redirect()->route('postdechets.offres.front', $offre->post_dechet_id)
+            ->with('success', 'Offre supprimée avec succès.');
+    }
+    
     public function updateStatutFront(Request $request, $id)
     {
         $validated = $request->validate([
@@ -245,4 +351,6 @@ class OffreTrocController extends Controller
 
         return redirect()->back()->with('success', 'Statut mis à jour');
     }
+
+    
 }
