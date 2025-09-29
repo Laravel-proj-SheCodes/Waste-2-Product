@@ -79,15 +79,22 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-dark" href="{{ url('/transformations') }}">
+                <a class="nav-link text-dark" href="{{ route('proposition-transformations.index') }}">
                     <i class="material-symbols-rounded opacity-5">build</i>
                     <span class="nav-link-text ms-1">Transformations</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-dark" href="{{ url('/products') }}">
+                <a class="nav-link text-dark" href="{{ route('processus-transformations.index')}}">
                     <i class="material-symbols-rounded opacity-5">inventory</i>
-                    <span class="nav-link-text ms-1">Products</span>
+                    <span class="nav-link-text ms-1">Process</span>
+                </a>
+            </li>
+
+             <li class="nav-item">
+                <a class="nav-link text-dark" href="{{ route('produit-transformes.index')}}">
+                    <i class="material-symbols-rounded opacity-5">inventory</i>
+                    <span class="nav-link-text ms-1">Produit</span>
                 </a>
             </li>
         </ul>
