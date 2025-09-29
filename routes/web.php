@@ -125,20 +125,15 @@ Route::prefix('waste-posts')->name('front.waste-posts.')->group(function () {
     Route::middleware('auth')->group(function () {
         Route::get('/create', [PostDechetFrontController::class, 'create'])->name('create');
         Route::post('/',      [PostDechetFrontController::class, 'store'])->name('store');
-        Route::get('/{id}/edit', [OffreTrocController::class, 'editFront'])->name('offres-troc.edit.front');
-        Route::put('/{id}', [OffreTrocController::class, 'updateFront'])->name('offres-troc.update.front');
 
         Route::get('/{postDechet}/edit', [PostDechetFrontController::class, 'edit'])->name('edit');
         Route::put('/{postDechet}',      [PostDechetFrontController::class, 'update'])->name('update');
         Route::delete('/{postDechet}',   [PostDechetFrontController::class, 'destroy'])->name('destroy');
     });
-
-    // Show public (contrainte pour ne pas “manger” /create)
     Route::get('/{postDechet}', [PostDechetFrontController::class, 'show'])
         ->whereNumber('postDechet')
         ->name('show');
 });
-
 
 /* =========================
  |  Donation
@@ -175,7 +170,7 @@ Route::prefix('mes-propositions')
          Route::get('/recues', [\App\Http\Controllers\Front\PropositionFrontController::class, 'received'])
              ->name('received');
     });
-    /* =========================
+/* =========================
  |  Transactions Troc – Frontoffice
  * ========================= */
 Route::prefix('home/transactions-troc')
@@ -187,17 +182,4 @@ Route::prefix('home/transactions-troc')
         Route::get('/{id}/edit', [TransactionTrocController::class, 'editFront'])->name('edit.front');
         Route::put('/{id}', [TransactionTrocController::class, 'updateFront'])->name('update.front');
     });
-    Route::post('/favorites/toggle/{post}', [PostDechetController::class, 'toggleFavorite'])->name('favorites.toggle');
-    // Backoffice Routes transaction troc
-Route::prefix('transactions-troc')->group(function () {
-    // List all transactions (Backoffice)
-    Route::get('/', [TransactionTrocController::class, 'index'])->name('transactions-troc.index');
-    
-    // Show transaction details (Backoffice)
-    Route::get('/{id}', [TransactionTrocController::class, 'show'])->name('transactions-troc.show');
-    
-    // Update transaction (Backoffice, assuming it’s used)
-    Route::middleware('auth')->group(function () {
-        Route::put('/{id}', [TransactionTrocController::class, 'update'])->name('transactions-troc.update');
-    });
-});
+Route::post('/favorites/toggle/{post}', [PostDechetController::class, 'toggleFavorite'])->name('favorites.toggle');
