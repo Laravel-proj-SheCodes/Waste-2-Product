@@ -55,6 +55,15 @@ Route::resource('processus-transformations', ProcessusTransformationController::
 // Products
 Route::resource('produit-transformes', ProduitTransformeController::class);
 
+// Frontoffice: Gestion  de transformation
+Route::prefix('front/propositions-transformation')->middleware('auth')->group(function () {
+    Route::get('/', [PropositionTransformationController::class, 'indexFront'])->name('front.propositions.index');
+    Route::get('/{propositionTransformation}', [PropositionTransformationController::class, 'showFront'])->name('front.propositions.show');
+    Route::get('/{propositionTransformation}/edit', [PropositionTransformationController::class, 'editFront'])->name('front.propositions.edit');
+    Route::patch('/{propositionTransformation}', [PropositionTransformationController::class, 'updateFront'])->name('front.propositions.update');
+});
+
+
 /* =========================
  |  Authentification
  * ========================= */

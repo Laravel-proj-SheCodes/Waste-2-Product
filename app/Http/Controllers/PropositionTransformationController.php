@@ -55,4 +55,58 @@ class PropositionTransformationController extends Controller
         $propositionTransformation->delete();
         return back()->with('ok','Proposition Transformation supprimée');
     }
+
+
+     /* =========================
+    |   Frontoffice Methods
+    * ========================= */
+
+    // Liste des propositions de l’utilisateur connecté
+    public function indexFront()
+    {
+        $propositions = PropositionTransformation::where('transformateur_id', Auth::id())
+            ->with(['proposition.postDechet','transformateur'])
+            ->latest()
+            ->paginate(10);
+
+        return view('frontoffice.pages.transformation.propositions.index', compact('propositions'));
+    }
+
+    // Détails d’une proposition (front)
+    public function showFront(PropositionTransformation $propositionTransformation)
+    {
+        // Vérifie autorisation
+        if (Auth::id() !== $propositionTransformation->transformateur_id) {
+            return redirect()->route('front.propositions.index')->with('error', 'Vous n\'êtes pas autorisé à voir cette proposition.');
+        }
+
+        $propositionTransformation->load(['proposition.postDechet','transformateur']);
+        return view('frontoffice.pages.transformation.propositions.show', compact('propositionTransformation'));
+    }
+
+    // Formulaire d’édition côté front
+    public function editFront(PropositionTransformation $propositionTransformation)
+    {
+        if (Auth::id() !== $propositionTransformation->transformateur_id) {
+            return redirect()->route('front.propositions.index')->with('error', 'Action non autorisée.');
+        }
+
+        return view('frontoffice.pages.transformation.propositions.edit', compact('propositionTransformation'));
+    }
+
+    // Mise à jour côté front (statut ou description)
+    public function updateFront(UpdatePropositionTransformationRequest $request, PropositionTransformation $propositionTransformation)
+    {
+        if (Auth::id() !== $propositionTransformation->transformateur_id) {
+            return redirect()->route('front.propositions.index')->with('error', 'Action non autorisée.');
+        }
+
+        $data = $request->validated();
+        $propositionTransformation->update($data);
+
+        return redirect()->route('front.propositions.show', $propositionTransformation->id)->with('success', 'Proposition mise à jour avec succès.');
+    }
+
 }
+
+
