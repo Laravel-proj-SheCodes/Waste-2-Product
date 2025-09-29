@@ -99,7 +99,7 @@
         </ul>
 
         @auth
-          @if(auth()->id() === $postDechet->user_id)
+@if(auth()->id() === $postDechet->user_id)
             {{-- Propriétaire : actions d’édition --}}
             <div class="d-flex gap-2 mt-2">
               <a href="{{ route('front.waste-posts.edit', $postDechet) }}" class="btn btn-outline-success">
@@ -114,10 +114,15 @@
             </div>
           @else
             {{-- Utilisateur connecté mais NON propriétaire : bouton Proposer --}}
-            @if (Route::has('front.propositions.create'))
+            @if (Route::has('front.propositions.create') && $postDechet->type !== 'troc')
               <a href="{{ route('front.propositions.create', $postDechet) }}"
                  class="btn btn-success w-100 mt-2">
                 Faire une proposition
+              </a>
+            @elseif (Route::has('offres-troc.create.front') && $postDechet->type === 'troc')
+              <a href="{{ route('offres-troc.create.front', $postDechet) }}"
+                 class="btn btn-success w-100 mt-2">
+                Faire une proposition de troc
               </a>
             @endif
           @endif
