@@ -30,4 +30,10 @@ class Proposition extends Model
     {
         return $this->belongsTo(User::class);
     }
+    /////// relation 
+    public function propositionTransformation()
+{
+    return $this->hasOne(PropositionTransformation::class);
+}
+
 }

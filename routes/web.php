@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Route;
 /** Backoffice contrôleurs existants */
 use App\Http\Controllers\PostDechetController;
 use App\Http\Controllers\PropositionController;
+use App\Http\Controllers\PropositionTransformationController;
+use App\Http\Controllers\ProduitTransformeController;
+use App\Http\Controllers\ProcessusTransformationController;
 
 /** Auth */
 use App\Http\Controllers\AuthenticatedSessionController;
@@ -41,6 +44,16 @@ Route::get('/dashboard', fn () => view('backoffice.pages.dashboard'))->name('das
 
 Route::resource('postdechets', PostDechetController::class);
 Route::resource('propositions', PropositionController::class);
+
+
+// Proposals (transformator)
+Route::resource('proposition-transformations', PropositionTransformationController::class);
+
+// Processes
+Route::resource('processus-transformations', ProcessusTransformationController::class);
+
+// Products
+Route::resource('produit-transformes', ProduitTransformeController::class);
 
 /* =========================
  |  Authentification
@@ -183,3 +196,16 @@ Route::prefix('home/transactions-troc')
         Route::put('/{id}', [TransactionTrocController::class, 'updateFront'])->name('update.front');
     });
 Route::post('/favorites/toggle/{post}', [PostDechetController::class, 'toggleFavorite'])->name('favorites.toggle');
+
+/* =========================
+ |  API pour transformation processus
+ * ========================= */
+
+ // Proposals (transformator)
+Route::resource('proposition-transformations', PropositionTransformationController::class);
+
+// Processes
+Route::resource('processus-transformations', ProcessusTransformationController::class);
+
+// Products
+Route::resource('produit-transformes', ProduitTransformeController::class);
