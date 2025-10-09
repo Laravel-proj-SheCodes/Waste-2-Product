@@ -164,16 +164,16 @@
                     <div class="text-center mb-4">
                         <i class="bi bi-trash text-red-500" style="font-size: 3rem;"></i>
                     </div>
-                    <h6 class="text-center mb-3">Êtes-vous sûr de vouloir supprimer cette commande ?</h6>
+                    <h6 class="text-center mb-3">Êtes-vous sûr de vouloir Annuler cette commande ?</h6>
                     <p class="text-center text-gray-600 mb-0">
-                        Cette action est irréversible. La commande sera définitivement supprimée.
+                        Cette action est irréversible. La commande sera définitivement Annulée.
                     </p>
                     <input type="hidden" id="delete_commande_id">
                 </div>
                 <div class="modal-footer border-0 p-4">
                     <button type="button" class="btn btn-light rounded-2 px-4" data-bs-dismiss="modal">Annuler</button>
                     <button type="button" class="btn btn-danger btn-lg rounded-2 px-4 fw-semibold" onclick="confirmDeleteOrder()">
-                        <i class="bi bi-trash me-2"></i>Supprimer
+                        <i class="bi bi-trash me-2"></i>Annuler la Commande
                     </button>
                 </div>
             </div>
@@ -427,7 +427,7 @@ function getOrderActionButton(commande, userRole) {
                 ${canDelete ? `
                     <button class="btn btn-outline-danger btn-sm rounded-2 fw-semibold hover-scale" 
                             onclick="openDeleteOrderModal(${commande.id})">
-                        <i class="bi bi-trash me-1"></i>Supprimer
+                        <i class="bi bi-trash me-1"></i>Annuler la Commande
                     </button>
                 ` : ''}
                 ${canMarkDelivered ? `
@@ -470,18 +470,20 @@ function setupFormHandlers() {
         
         console.log('[v0] Updating order:', commandeId, 'to status:', newStatus);
         
+        // ✅ CORRECTION: Utiliser FormData au lieu de JSON
+        const formData = new FormData();
+        formData.append('_method', 'PATCH');
+        formData.append('statut_commande', newStatus);
+        
         fetch(`/commandes/${commandeId}`, {
-            method: 'PATCH',
+            method: 'POST', // ✅ Utiliser POST avec _method
             headers: {
-                'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json',
                 'X-CSRF-TOKEN': csrfToken
             },
             credentials: 'include',
-            body: JSON.stringify({
-                statut_commande: newStatus
-            })
+            body: formData
         })
         .then(response => {
             console.log('[v0] Update response status:', response.status);
