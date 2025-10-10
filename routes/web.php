@@ -186,6 +186,9 @@ Route::prefix('mes-propositions')
 /* =========================
  |  Transactions Troc – Frontoffice
  * ========================= */
+
+Route::post('/analyze-image', [PostDechetFrontController::class, 'analyze'])->name('front.waste-posts.analyze');
+
 Route::prefix('home/transactions-troc')
     ->name('transactions-troc.')
     ->middleware('auth')

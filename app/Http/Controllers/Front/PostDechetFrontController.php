@@ -9,9 +9,88 @@ use App\Models\PostDechet;
 use App\Models\Proposition;              // ✅ AJOUTER
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+$token = env('HUGGINGFACE_TOKEN');
 
 class PostDechetFrontController extends Controller
 {
+
+//mouna job (troc)
+
+
+// analyse IA pour les posts de type troc
+public function analyze(Request $request)
+{
+    if (!$request->hasFile('photo')) {
+        return response()->json(['error' => 'Aucune image reçue'], 400);
+    }
+
+    $file = $request->file('photo');
+    $path = $file->store('analyze', 'public');
+
+    $token = env('HUGGINGFACE_TOKEN');
+    $imageData = base64_encode(file_get_contents($file->getRealPath()));
+
+    try {
+        // 1️⃣ Reconnaissance de l’objet
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
+        ])->post('https://api-inference.huggingface.co/models/google/vit-base-patch16-224', [
+            'inputs' => $imageData
+        ]);
+
+        $result = $response->json();
+
+        if (!isset($result[0]['label'])) {
+            return response()->json(['error' => 'Analyse impossible', 'result' => $result]);
+        }
+
+        $label = $result[0]['label'];
+
+        // 2️⃣ Générer un titre court et descriptif
+        $titlePrompt = "Propose un titre court et précis pour un objet de type '$label' sur cette image.";
+
+        $titleResponse = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
+        ])->post('https://api-inference.huggingface.co/models/gpt2', [
+            'inputs' => $titlePrompt
+        ]);
+
+        $titleResult = $titleResponse->json();
+        $generatedTitle = $titleResult[0]['generated_text'] ?? ucfirst($label);
+
+        // 3️⃣ Générer une description détaillée incluant la couleur
+        $descPrompt = "Décris en détail cet objet de type '$label' en mentionnant sa couleur dominante, son état, ses caractéristiques visibles et son usage.";
+
+        $descResponse = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
+        ])->post('https://api-inference.huggingface.co/models/gpt2', [
+            'inputs' => $descPrompt
+        ]);
+
+        $descResult = $descResponse->json();
+        $detailedDesc = $descResult[0]['generated_text'] ?? "Objet: $label, couleur dominante visible, état bon et usage possible.";
+
+        return response()->json([
+            'success' => true,
+            'titre' => $generatedTitle,
+            'categorie' => $label,
+            'etat' => 'neuf',          // valeur par défaut
+            'unite_mesure' => 'pièce',     // valeur par défaut
+            'quantite' => 1,               // valeur par défaut
+            'description' => $detailedDesc
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Erreur API : ' . $e->getMessage()]);
+    }
+}
+
+
     // Liste publique
     public function index()
     {
