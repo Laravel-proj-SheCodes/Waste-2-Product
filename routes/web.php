@@ -1,13 +1,9 @@
 <?php
-
 use Illuminate\Support\Facades\Route;
 
 /** Backoffice contrôleurs existants */
 use App\Http\Controllers\PostDechetController;
 use App\Http\Controllers\PropositionController;
-use App\Http\Controllers\PropositionTransformationController;
-use App\Http\Controllers\ProduitTransformeController;
-use App\Http\Controllers\ProcessusTransformationController;
 
 /** Auth */
 use App\Http\Controllers\AuthenticatedSessionController;
@@ -64,6 +60,32 @@ Route::get('/register',  [AuthenticatedSessionController::class, 'register'])->n
 Route::post('/register', [AuthenticatedSessionController::class, 'registerStore'])->name('register.store');
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
+// Marquer une notification comme lue + rediriger
+// routes/web.php
+Route::get('/notifications/read/{id}', function ($id) {
+    $n = Auth::user()->notifications()->findOrFail($id);
+    $n->markAsRead();
+
+    $url = $n->data['url'] ?? null;
+    if ($url) return redirect($url);
+
+    $propId = $n->data['proposition_id'] ?? null;
+    return redirect()->route('front.propositions.received', ['highlight' => $propId]);
+})->middleware('auth')->name('notifications.read');
+
+ 
+
+// (Optionnel) Route de debug pour vérifier que la cloche fonctionne
+Route::get('/debug-notif', function () {
+    $u = Auth::user(); abort_unless($u, 403);
+    $u->notify(new \App\Notifications\ProposalReceived(
+        postId: 999,
+        propositionId: 999,
+        senderName: 'DEBUG',
+        postTitle: 'Test'
+    ));
+    return 'OK';
+})->middleware('auth');
 /* =========================
  |  Marketplace
  * ========================= */
@@ -174,15 +196,18 @@ Route::prefix('mes-propositions')
     ->name('front.propositions.')
     ->middleware('auth')
     ->group(function () {
-        Route::get('/',                    [PropositionFrontController::class, 'index'])->name('index');
-        Route::get('/create/{postDechet}', [PropositionFrontController::class, 'create'])->name('create');
-        Route::post('/{postDechet}',       [PropositionFrontController::class, 'store'])->name('store');
-        Route::get('/{proposition}/edit',  [PropositionFrontController::class, 'edit'])->name('edit');
-        Route::put('/{proposition}',       [PropositionFrontController::class, 'update'])->name('update');
-        Route::delete('/{proposition}',    [PropositionFrontController::class, 'destroy'])->name('destroy');
-         Route::get('/recues', [\App\Http\Controllers\Front\PropositionFrontController::class, 'received'])
-             ->name('received');
+        Route::get('/',                      [\App\Http\Controllers\Front\PropositionFrontController::class, 'index'])->name('index');
+        Route::get('/create/{postDechet}',   [\App\Http\Controllers\Front\PropositionFrontController::class, 'create'])->name('create');
+        Route::post('/{postDechet}',         [\App\Http\Controllers\Front\PropositionFrontController::class, 'store'])->name('store');
+        Route::get('/{proposition}/edit',    [\App\Http\Controllers\Front\PropositionFrontController::class, 'edit'])->name('edit');
+        Route::put('/{proposition}',         [\App\Http\Controllers\Front\PropositionFrontController::class, 'update'])->name('update');
+        Route::delete('/{proposition}',      [\App\Http\Controllers\Front\PropositionFrontController::class, 'destroy'])->name('destroy');
+
+        Route::get('/recues', [PropositionFrontController::class, 'received'])->name('received');
+        Route::post('/{proposition}/accept', [\App\Http\Controllers\Front\PropositionFrontController::class, 'accept'])->name('accept');
+        Route::post('/{proposition}/reject', [\App\Http\Controllers\Front\PropositionFrontController::class, 'reject'])->name('reject');
     });
+
 /* =========================
  |  Transactions Troc – Frontoffice
  * ========================= */
@@ -212,3 +237,4 @@ Route::resource('processus-transformations', ProcessusTransformationController::
 
 // Products
 Route::resource('produit-transformes', ProduitTransformeController::class);
+

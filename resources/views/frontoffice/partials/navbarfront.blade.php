@@ -41,7 +41,7 @@
             </li>
           @endif
 
-          {{-- Transformation (affiché seulement si la route existe) --}}
+          {{-- Transformation --}}
           @if (Route::has('front.transformations.index'))
             <li class="nav-item">
               <a class="nav-link {{ request()->routeIs('front.transformations.*') ? 'active' : '' }}"
@@ -51,36 +51,35 @@
             </li>
           @endif
 
-        {{-- Marketplace Dropdown --}}
-@if (Route::has('marketplace') || Route::has('commandes.index'))
-    <li class="nav-item dropdown">
-        <a class="nav-link dropdown-toggle {{ request()->routeIs('marketplace') || request()->routeIs('commandes.*') ? 'active' : '' }}"
-           href="#" id="marketplaceDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            Marketplace
-        </a>
-        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="marketplaceDropdown">
-            @if (Route::has('marketplace'))
-                <li>
+          {{-- Marketplace Dropdown --}}
+          @if (Route::has('marketplace') || Route::has('commandes.index'))
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle {{ request()->routeIs('marketplace') || request()->routeIs('commandes.*') ? 'active' : '' }}"
+                 href="#" id="marketplaceDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                Marketplace
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="marketplaceDropdown">
+                @if (Route::has('marketplace'))
+                  <li>
                     <a class="dropdown-item {{ request()->routeIs('marketplace') ? 'active' : '' }}"
                        href="{{ route('marketplace') }}">
-                        Marketplace Home
+                      Marketplace Home
                     </a>
-                </li>
-            @endif
-            @if (Route::has('commandes.index'))
-                <li>
+                  </li>
+                @endif
+                @if (Route::has('commandes.index'))
+                  <li>
                     <a class="dropdown-item {{ request()->routeIs('commandes.*') ? 'active' : '' }}"
                        href="{{ route('commandes.page') }}">
-                        My Orders
+                      My Orders
                     </a>
-                </li>
-            @endif
-        </ul>
-    </li>
-@endif
+                  </li>
+                @endif
+              </ul>
+            </li>
+          @endif
 
-
-          {{-- Troc (actif sur /home/troc et /home/offres-troc/*) --}}
+          {{-- Troc --}}
           @php
             $isTrocActive = request()->routeIs('postdechets.troc.front') || request()->routeIs('offres-troc.*.front');
           @endphp
@@ -124,12 +123,22 @@
           {{-- espace --}}
           <li class="nav-item d-none d-lg-block" style="width:8px;"></li>
 
+          {{-- 🔔 Icône de notifications --}}
+          <li class="nav-item ms-2">
+            @include('frontoffice.partials.notifications')
+          </li>
+
           {{-- Avatar (initiales) --}}
           @php
             $fullName = trim(Auth::user()->name ?? '');
             $parts = preg_split('/\s+/', $fullName);
             $initials = '';
-            foreach ($parts as $p) { if ($p !== '') { $initials .= mb_strtoupper(mb_substr($p,0,1)); } if (mb_strlen($initials) >= 2) break; }
+            foreach ($parts as $p) {
+                if ($p !== '') {
+                    $initials .= mb_strtoupper(mb_substr($p,0,1));
+                }
+                if (mb_strlen($initials) >= 2) break;
+            }
             if ($initials === '') $initials = 'U';
           @endphp
 
