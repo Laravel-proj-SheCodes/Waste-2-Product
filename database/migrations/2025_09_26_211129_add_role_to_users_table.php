@@ -7,16 +7,22 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            // string pour rester compatible (MySQL/SQLite). Si tu préfères un enum MySQL, dis-le.
-            $table->string('role', 20)->default('client')->after('password'); // 'admin' | 'client'
-        });
+        if (Schema::hasTable('users')) {
+            Schema::table('users', function (Blueprint $table) {
+                // Ajoute la colonne seulement si elle n’existe pas
+                if (!Schema::hasColumn('users', 'role')) {
+                    $table->string('role', 20)->default('client')->after('password');
+                }
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('role');
-        });
+        if (Schema::hasTable('users') && Schema::hasColumn('users', 'role')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropColumn('role');
+            });
+        }
     }
 };

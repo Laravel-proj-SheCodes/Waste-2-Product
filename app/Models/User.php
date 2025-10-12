@@ -60,5 +60,22 @@ public function isClient(): bool
     return $this->role === 'client';
 }
 
+    // 🔔 Relation avec les notifications Laravel
+    public function receivesBroadcastNotificationsOn(): string
+    {
+        return 'users.' . $this->id;
+    }
+
+    // 🔔 Raccourcis utiles
+    public function unreadNotificationsCount()
+    {
+        return $this->unreadNotifications()->count();
+    }
+
+    public function latestNotifications($limit = 10)
+    {
+        return $this->notifications()->latest()->take($limit)->get();
+    }
+
 }
 

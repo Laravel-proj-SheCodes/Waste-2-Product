@@ -34,10 +34,42 @@
   .photo-main{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:16px;background:#f3f5f7}
   .card-soft{border:0;border-radius:16px;background:#fff;box-shadow:0 10px 28px rgba(0,0,0,.08)}
   .specs li{margin-bottom:.4rem}
+
+  /* Surbrillance 5s après clic de notif */
+  .glow-target {
+    animation: glowPulse 1s ease-in-out 5 alternate;
+    box-shadow: 0 0 0 rgba(255, 193, 7, 0);
+    background-color: transparent;
+  }
+  @keyframes glowPulse {
+    0%   { box-shadow: 0 0 0 rgba(255, 193, 7, 0); background-color: transparent; }
+    50%  { box-shadow: 0 0 18px rgba(255, 193, 7, .8); background-color: rgba(255, 243, 205, .6); }
+    100% { box-shadow: 0 0 0 rgba(255, 193, 7, 0); background-color: transparent; }
+  }
 </style>
 
 <div class="container py-4">
   <a href="{{ route('front.waste-posts.index') }}" class="text-success">&larr; Retour</a>
+
+  {{-- Alertes (succès / info) --}}
+  @if (session('ok'))
+    <div class="alert alert-success mt-3">{{ session('ok') }}</div>
+  @endif
+  @if (session('error'))
+    <div class="alert alert-danger mt-3">{{ session('error') }}</div>
+  @endif
+
+  {{-- Alerte quand l’utilisateur vient d’une notification "acceptée" ou "refusée" --}}
+  @if(request()->boolean('accepted'))
+    <div class="alert alert-success mt-3">
+      ✅ Félicitations ! Votre proposition a été <strong>acceptée</strong>.
+    </div>
+  @endif
+  @if(request()->boolean('rejected'))
+    <div class="alert alert-danger mt-3">
+      ❌ Votre proposition a été <strong>refusée</strong>.
+    </div>
+  @endif
 
   {{-- Bandeau vert --}}
   <div class="hero mt-3">
@@ -99,7 +131,7 @@
         </ul>
 
         @auth
-@if(auth()->id() === $postDechet->user_id)
+          @if(auth()->id() === $postDechet->user_id)
             {{-- Propriétaire : actions d’édition --}}
             <div class="d-flex gap-2 mt-2">
               <a href="{{ route('front.waste-posts.edit', $postDechet) }}" class="btn btn-outline-success">
@@ -113,17 +145,27 @@
               </form>
             </div>
           @else
-            {{-- Utilisateur connecté mais NON propriétaire : bouton Proposer --}}
-            @if (Route::has('front.propositions.create') && $postDechet->type !== 'troc')
-              <a href="{{ route('front.propositions.create', $postDechet) }}"
-                 class="btn btn-success w-100 mt-2">
-                Faire une proposition
-              </a>
-            @elseif (Route::has('offres-troc.create.front') && $postDechet->type === 'troc')
-              <a href="{{ route('offres-troc.create.front', $postDechet) }}"
-                 class="btn btn-success w-100 mt-2">
-                Faire une proposition de troc
-              </a>
+            {{-- Utilisateur connecté mais NON propriétaire : bouton Proposer (caché si déjà accepté ou déjà proposé) --}}
+            @php
+              $postDechet->loadMissing('propositions');
+              $dejaAcceptee   = $postDechet->propositions->contains(fn($p) => $p->statut === 'accepte');
+              $jAiDejaPropose = auth()->check()
+                                   ? $postDechet->propositions->contains(fn($p) => $p->user_id === auth()->id())
+                                   : false;
+            @endphp
+
+            @if (!$dejaAcceptee && !$jAiDejaPropose)
+              @if (Route::has('front.propositions.create') && $postDechet->type !== 'troc')
+                <a href="{{ route('front.propositions.create', $postDechet) }}"
+                   class="btn btn-success w-100 mt-2">
+                  Faire une proposition
+                </a>
+              @elseif (Route::has('offres-troc.create.front') && $postDechet->type === 'troc')
+                <a href="{{ route('offres-troc.create.front', $postDechet) }}"
+                   class="btn btn-success w-100 mt-2">
+                  Faire une proposition de troc
+                </a>
+              @endif
             @endif
           @endif
         @else
@@ -141,7 +183,7 @@
   ========================= --}}
   @auth
     @if(auth()->id() === $postDechet->user_id)
-      <div class="mt-4">
+      <div class="mt-4" id="propositions">
         <h3 class="h5 mb-3">Propositions reçues</h3>
 
         @if($received->isEmpty())
@@ -149,19 +191,25 @@
         @else
           <div class="list-group">
             @foreach($received as $prop)
-              <div class="list-group-item">
+              <div id="proposition-{{ $prop->id }}" class="list-group-item">
                 <div class="d-flex justify-content-between align-items-start">
-                  <div>
+                  <div class="me-3">
                     <div class="fw-semibold">
                       {{ $prop->user->name ?? 'Utilisateur' }}
-                      <span class="badge ms-2
-                        @switch($prop->statut)
-                          @case('acceptee') bg-success @break
-                          @case('refusee')  bg-danger  @break
-                          @default         bg-secondary
-                        @endswitch">
-                        {{ str_replace('_',' ', $prop->statut ?? 'en_attente') }}
-                      </span>
+
+                      @php
+                        $badgeClass = $prop->statut === 'accepte' ? 'bg-success'
+                                     : ($prop->statut === 'refusee' ? 'bg-danger' : 'bg-secondary');
+
+                        $labelMap = [
+                          'en_attente' => 'en attente',
+                          'accepte'    => 'acceptée',
+                          'refusee'    => 'refusée',
+                        ];
+                        $label = $labelMap[$prop->statut ?? 'en_attente'];
+                      @endphp
+
+                      <span class="badge ms-2 {{ $badgeClass }}">{{ $label }}</span>
                     </div>
                     <div class="text-muted small">
                       {{ $prop->created_at ? $prop->created_at->diffForHumans() : ($prop->date_proposition ? \Carbon\Carbon::parse($prop->date_proposition)->diffForHumans() : '') }}
@@ -170,17 +218,48 @@
                       {!! nl2br(e($prop->description)) !!}
                     </div>
                   </div>
+
+                  {{-- Actions : accepter / refuser (si en attente) --}}
+                  @if(($prop->statut ?? 'en_attente') === 'en_attente')
+                    <div class="text-end">
+                      <form action="{{ route('front.propositions.accept', $prop) }}" method="POST" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-success">Accepter</button>
+                      </form>
+                      <form action="{{ route('front.propositions.reject', $prop) }}" method="POST" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Refuser</button>
+                      </form>
+                    </div>
+                  @endif
                 </div>
               </div>
             @endforeach
           </div>
-
-          <a href="{{ route('front.propositions.index') }}" class="btn btn-outline-success mt-3">
-            Voir toutes mes propositions
-          </a>
         @endif
       </div>
     @endif
   @endauth
 </div>
+
+{{-- Surbrillance 5s + scroll automatique vers la proposition ciblée --}}
+<script>
+  (function () {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('highlight');
+    if (!id) return;
+
+    const el = document.getElementById('proposition-' + id);
+    if (!el) return;
+
+    // ajouter l'effet
+    el.classList.add('glow-target');
+
+    // scroll dans la page jusqu'à l’élément
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // retirer la classe après ~5 secondes
+    setTimeout(() => el.classList.remove('glow-target'), 5200);
+  })();
+</script>
 @endsection
