@@ -230,4 +230,11 @@ public function getUserPostDechets(): JsonResponse
     ], 200);
 }
 
+public function showCommandes(AnnonceMarketplace $annonce)
+{
+    $annonce->load(['commandes.acheteur', 'commandes.vendeur', 'postDechet']);
+    
+    return view('backoffice.pages.annonces.commandes', compact('annonce'));
+}
+
 }

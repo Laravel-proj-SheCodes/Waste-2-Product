@@ -82,6 +82,8 @@ Route::get('/commandes-page', function () {
 
 Route::get('/api/mes-post-dechets', [AnnonceMarketplaceController::class, 'getUserPostDechets'])->name('api.mes-post-dechets');
 
+Route::get('annonces/{annonce}/commandes', [AnnonceMarketplaceController::class, 'showCommandes'])
+        ->name('annonces.commandes');
 /* =========================
  |  Troc – Backoffice
  * ========================= */
