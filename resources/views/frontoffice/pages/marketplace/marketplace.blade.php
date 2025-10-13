@@ -80,7 +80,7 @@
             <p class="lead text-gray-600 mb-0">Gérez vos annonces marketplace</p>
         </div>
         
-         <CHANGE> Ajout du sélecteur de devise 
+         <CHANGE> 
         <div class="row justify-content-center mb-4">
             <div class="col-lg-4 col-md-6">
                 <div class="card border-0 shadow-sm rounded-3">
