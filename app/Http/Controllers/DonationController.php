@@ -8,26 +8,35 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\StoreDonationRequest;
+use App\Http\Requests\UpdateDonationRequest;
 
 class DonationController extends Controller
 {
     /**
      * Display a listing of donations.
      */
+
     public function index(Request $request)
     {
         $donations = Donation::with('user')
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
+        // Enhanced statistics
         $stats = [
             'total' => Donation::count(),
             'pending' => Donation::where('status', 'pending')->count(),
             'accepted' => Donation::where('status', 'accepted')->count(),
+            'rejected' => Donation::where('status', 'rejected')->count(),
+            'taken' => Donation::where('status', 'taken')->count(),
         ];
 
         if ($request->wantsJson() || $request->ajax()) {
-            return response()->json($donations);
+            return response()->json([
+                'donations' => $donations,
+                'stats' => $stats
+            ]);
         }
 
         return view('backoffice.pages.donations.index', compact('donations', 'stats'));
@@ -44,46 +53,31 @@ class DonationController extends Controller
     /**
      * Store a newly created donation.
      */
-    public function store(Request $request)
-    {
-        if (!Auth::check()) {
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json(['error' => 'Authentification requise'], 401);
-            }
-            return redirect()->route('login')->with('error', 'Authentification requise');
-        }
 
-        $request->validate([
-            'location' => 'required|string',
-            'product_name' => 'required|string',
-            'quantity' => 'required|integer|min:1',
-            'type' => 'required|in:recyclable,renewable',
-            'donation_date' => 'required|date',
-            'description' => 'nullable|string',
-        ]);
+public function store(StoreDonationRequest $request)
+{
+    $donation = Donation::create([
+        'user_id' => Auth::id(),
+        'location' => $request->location,
+        'product_name' => $request->product_name,
+        'quantity' => $request->quantity,
+        'type' => $request->type,
+        'description' => $request->description,
+        'donation_date' => $request->donation_date,
+        'status' => 'pending',
+    ]);
 
-        $donation = Donation::create([
-            'user_id' => Auth::id(),
-            'location' => $request->location,
-            'product_name' => $request->product_name,
-            'quantity' => $request->quantity,
-            'type' => $request->type,
-            'description' => $request->description,
-            'donation_date' => $request->donation_date,
-            'status' => 'pending',
-        ]);
-
-        if ($request->wantsJson() || $request->ajax()) {
-            return response()->json($donation->load('user'), 201);
-        }
-
-        // Check if submission came from frontoffice
-        if ($request->input('from_front')) {
-            return redirect()->route('donate.thankyou')->with('success', 'Donation submitted successfully!');
-        }
-
-        return redirect()->route('donations.index')->with('success', 'Donation submitted successfully!');
+    if ($request->wantsJson() || $request->ajax()) {
+        return response()->json($donation->load('user'), 201);
     }
+
+    if ($request->input('from_front')) {
+        return redirect()->route('donate.thankyou')->with('success', 'Donation submitted successfully!');
+    }
+
+    return redirect()->route('donations.index')->with('success', 'Donation submitted successfully!');
+}
+
 
     /**
      * Display the specified donation.
@@ -112,40 +106,16 @@ class DonationController extends Controller
     /**
      * Update the specified donation.
      */
-    public function update(Request $request, Donation $donation)
-    {
-        if (!Auth::check()) {
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json(['error' => 'Authentification requise'], 401);
-            }
-            return redirect()->route('login');
-        }
+   public function update(UpdateDonationRequest $request, Donation $donation)
+{
+    $donation->update($request->only(['location', 'product_name', 'quantity', 'type', 'description', 'donation_date', 'status']));
 
-        if ($donation->user_id !== Auth::id()) {
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json(['error' => 'Non autorisé'], 403);
-            }
-            return redirect()->route('donations.index')->with('error', 'Non autorisé');
-        }
-
-        $request->validate([
-            'location' => 'sometimes|string',
-            'product_name' => 'sometimes|string',
-            'quantity' => 'sometimes|integer|min:1',
-            'type' => 'sometimes|in:recyclable,renewable',
-            'donation_date' => 'sometimes|date',
-            'description' => 'nullable|string',
-            'status' => 'sometimes|in:pending,accepted,rejected,taken',
-        ]);
-
-        $donation->update($request->only(['location', 'product_name', 'quantity', 'type', 'description', 'donation_date', 'status']));
-
-        if ($request->wantsJson() || $request->ajax()) {
-            return response()->json($donation->load('user'));
-        }
-
-        return redirect()->route('donations.index')->with('success', 'Donation mise à jour avec succès');
+    if ($request->wantsJson() || $request->ajax()) {
+        return response()->json($donation->load('user'));
     }
+
+    return redirect()->route('donations.index')->with('success', 'Donation mise à jour avec succès');
+}
 
     /**
      * Remove the specified donation.
