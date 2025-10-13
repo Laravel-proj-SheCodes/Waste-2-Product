@@ -73,17 +73,35 @@
 
 <section class="py-5 bg-gray-50">
     <div class="container px-5">
-        <div class="text-center mb-5">
+        <div class="text-center mb-4">
             <h2 class="fw-bold text-gray-800 mb-3">
                 <i class="bi bi-person-badge me-2 text-blue-600"></i>Mes Annonces
             </h2>
             <p class="lead text-gray-600 mb-0">Gérez vos annonces marketplace</p>
         </div>
-         
+        
+         <CHANGE> Ajout du sélecteur de devise 
+        <div class="row justify-content-center mb-4">
+            <div class="col-lg-4 col-md-6">
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-body p-3">
+                        <label for="currencySelector" class="form-label fw-semibold text-gray-700 mb-2">
+                            <i class="bi bi-currency-exchange me-2"></i>Afficher les prix en:
+                        </label>
+                        <select class="form-select form-select-lg border-2 rounded-2" id="currencySelector">
+                            <option value="EUR" selected>Euro (€)</option>
+                            <option value="USD">Dollar US ($)</option>
+                            <option value="GBP">Livre Sterling (£)</option>
+                            <option value="CHF">Franc Suisse (CHF)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <div id="annoncesContainer" class="row gx-4 gy-4">
         </div>
         
-      
         <div id="emptyState" class="text-center py-5" style="display: none;">
             <div class="mb-4">
                 <i class="bi bi-inbox text-gray-400" style="font-size: 5rem;"></i>
@@ -270,6 +288,7 @@
 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
 let userAnnonceIds = [];
+let selectedCurrency = 'EUR';
 
 document.addEventListener('DOMContentLoaded', function() {
     // Load user's waste posts for the dropdown
@@ -288,7 +307,48 @@ document.addEventListener('DOMContentLoaded', function() {
     setupFilterHandlers();
     
     setupOrderHandlers();
+    setupCurrencySelector();
 });
+
+function setupCurrencySelector() {
+    const currencySelector = document.getElementById('currencySelector');
+    if (currencySelector) {
+        currencySelector.addEventListener('change', function() {
+            selectedCurrency = this.value;
+            console.log('[v0] Currency changed to:', selectedCurrency);
+            
+            // Recharge les deux listes avec la nouvelle devise
+            Promise.all([
+                loadMesAnnonces(),
+                loadAllAnnoncesWithCurrency()
+            ]);
+        });
+    }
+}
+function loadAllAnnoncesWithCurrency() {
+    const search = document.getElementById('searchFilter').value;
+    const status = document.getElementById('statusFilter').value;
+    const query = new URLSearchParams();
+    if (search) query.append('search', search);
+    if (status) query.append('status', status);
+    query.append('to', selectedCurrency);
+
+    return fetch(`/annonces?${query.toString()}`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        displayAllAnnonces(data.data || data);
+    })
+    .catch(error => {
+        console.error('Error loading all annonces with currency:', error);
+        showAlert('Erreur lors du chargement des annonces converties', 'danger');
+    });
+}
 
 function loadUserPostDechets() {
     console.log('Loading user post dechets...');
@@ -330,7 +390,9 @@ function loadUserPostDechets() {
 }
 
 function loadMesAnnonces() {
-    return fetch('/mes-annonces', {
+    const url = `/mes-annonces?to=${selectedCurrency}`;
+    
+    return fetch(url, {
         headers: {
             'Accept': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
@@ -351,6 +413,7 @@ function loadMesAnnonces() {
         
         userAnnonceIds = data.map(annonce => annonce.id);
         console.log('[v0] User announcement IDs:', userAnnonceIds);
+        console.log('[v0] Loaded announcements with currency:', selectedCurrency);
         
         displayMesAnnonces(data);
     })
@@ -359,6 +422,60 @@ function loadMesAnnonces() {
         document.getElementById('emptyState').style.display = 'block';
         showAlert('Erreur lors du chargement des annonces', 'danger');
     });
+}
+
+// <CHANGE> Mise à jour de displayMesAnnonces pour afficher le prix converti
+function displayMesAnnonces(annonces) {
+    const container = document.getElementById('annoncesContainer');
+    if (!annonces || annonces.length === 0) {
+        container.innerHTML = '';
+        document.getElementById('emptyState').style.display = 'block';
+        return;
+    }
+
+    document.getElementById('emptyState').style.display = 'none';
+
+    container.innerHTML = annonces.map(annonce => {
+        const isOwnAnnouncement = true; // mes annonces = always own
+        // Fix: Use snake_case 'converted_price' from API response
+        const convertedPrice = annonce.converted_price ?? annonce.prix;
+        const priceWithCurrency = `${Number(convertedPrice).toFixed(2)} ${getCurrencySymbol(selectedCurrency)}`;
+
+        return `
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden hover-lift">
+                    <div class="card-header bg-white border-0 p-3">
+                        <span class="badge bg-blue-100 text-blue-800 px-3 py-2 rounded-pill"><i class="bi bi-person me-1"></i>Votre annonce</span>
+                    </div>
+                    <div class="card-body p-4">
+                        <h5 class="card-title fw-bold text-gray-800 mb-2">${annonce.post_dechet?.titre || 'Titre non disponible'}</h5>
+                        <p class="card-text text-gray-600 mb-3">${annonce.post_dechet?.description ? annonce.post_dechet.description.substring(0,100)+'...' : ''}</p>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="h4 text-success mb-0 fw-bold">${priceWithCurrency}</span>
+                            <small class="text-gray-500 fw-semibold"><i class="bi bi-geo-alt me-1"></i>${annonce.post_dechet?.localisation || ''}</small>
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-outline-primary btn-sm rounded-2" onclick="editAnnonce(${annonce.id}, ${annonce.prix}, '${annonce.statut_annonce}')">
+                                <i class="bi bi-pencil-square me-1"></i>Modifier
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+
+// <CHANGE> Nouvelle fonction pour obtenir le symbole de devise
+function getCurrencySymbol(currency) {
+    const symbols = {
+        'EUR': '€',
+        'USD': '$',
+        'GBP': '£',
+        'CHF': 'CHF'
+    };
+    return symbols[currency] || currency;
 }
 
 function loadAllAnnonces() {
@@ -390,63 +507,7 @@ function loadAllAnnonces() {
     });
 }
 
-function displayMesAnnonces(annonces) {
-    const container = document.getElementById('annoncesContainer');
-    const emptyState = document.getElementById('emptyState');
-    
-    if (!annonces || annonces.length === 0) {
-        container.innerHTML = '';
-        emptyState.style.display = 'block';
-        return;
-    }
-    
-    emptyState.style.display = 'none';
-    container.innerHTML = annonces.map(annonce => `
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden hover-lift">
-                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center p-3">
-                    <span class="badge ${getStatusBadgeClass(annonce.statut_annonce)} px-3 py-2 rounded-pill">${getStatusText(annonce.statut_annonce)}</span>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-secondary rounded-circle p-2" type="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-three-dots"></i>
-                        </button>
-                        <ul class="dropdown-menu shadow-lg border-0 rounded-3">
-                            <li><a class="dropdown-item rounded-2" href="#" onclick="editAnnonce(${annonce.id}, ${annonce.prix}, '${annonce.statut_annonce}')">
-                                <i class="bi bi-pencil me-2 text-blue-500"></i>Modifier
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger rounded-2" href="#" onclick="deleteAnnonce(${annonce.id})">
-                                <i class="bi bi-trash me-2"></i>Supprimer
-                            </a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="card-body p-4">
-                    <h5 class="card-title fw-bold text-gray-800 mb-2">${annonce.post_dechet?.titre || 'Titre non disponible'}</h5>
-                    <p class="card-text text-gray-600 mb-3">${annonce.post_dechet?.description ? annonce.post_dechet.description.substring(0, 100) + '...' : ''}</p>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="h4 text-success mb-0 fw-bold">${annonce.prix}€</span>
-                        <small class="text-gray-500 fw-semibold">
-                            <i class="bi bi-geo-alt me-1"></i>${annonce.post_dechet?.localisation || ''}
-                        </small>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <span class="badge bg-gray-100 text-gray-700 px-3 py-2 rounded-pill">
-                            <i class="bi bi-box me-1"></i>
-                            Stock: ${annonce.post_dechet?.quantite || 0}
-                        </span>
-                    </div>
-                </div>
-                <div class="card-footer bg-gray-50 border-0 p-3">
-                    <small class="text-gray-500">
-                        <i class="bi bi-calendar me-1"></i>
-                        Créé le ${new Date(annonce.created_at).toLocaleDateString('fr-FR')}
-                    </small>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
+
 
 function displayAllAnnonces(annonces) {
     const container = document.getElementById('allAnnoncesContainer');
