@@ -109,6 +109,15 @@
                     </a>
                   </li>
                 @endif
+                @if (Route::has('mes-donations'))
+                    <li>
+                        <a class="dropdown-item {{ request()->routeIs('mes-donations') ? 'active' : '' }}"
+                          href="{{ route('mes-donations') }}">
+                            My Donations
+                        </a>
+                    </li>
+                @endif
+
                 @if (Route::has('donate.myRequests'))
                   <li>
                     <a class="dropdown-item {{ request()->routeIs('donate.myRequests') ? 'active' : '' }}"

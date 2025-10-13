@@ -16,14 +16,12 @@ class DonationController extends Controller
     /**
      * Display a listing of donations.
      */
-
     public function index(Request $request)
     {
         $donations = Donation::with('user')
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        // Enhanced statistics
         $stats = [
             'total' => Donation::count(),
             'pending' => Donation::where('status', 'pending')->count(),
@@ -53,31 +51,29 @@ class DonationController extends Controller
     /**
      * Store a newly created donation.
      */
+    public function store(StoreDonationRequest $request)
+    {
+        $donation = Donation::create([
+            'user_id' => Auth::id(),
+            'location' => $request->location,
+            'product_name' => $request->product_name,
+            'quantity' => $request->quantity,
+            'type' => $request->type,
+            'description' => $request->description,
+            'donation_date' => $request->donation_date,
+            'status' => 'pending',
+        ]);
 
-public function store(StoreDonationRequest $request)
-{
-    $donation = Donation::create([
-        'user_id' => Auth::id(),
-        'location' => $request->location,
-        'product_name' => $request->product_name,
-        'quantity' => $request->quantity,
-        'type' => $request->type,
-        'description' => $request->description,
-        'donation_date' => $request->donation_date,
-        'status' => 'pending',
-    ]);
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json($donation->load('user'), 201);
+        }
 
-    if ($request->wantsJson() || $request->ajax()) {
-        return response()->json($donation->load('user'), 201);
+        if ($request->input('from_front')) {
+            return redirect()->route('donate.thankyou')->with('success', 'Donation submitted successfully!');
+        }
+
+        return redirect()->route('donations.index')->with('success', 'Donation submitted successfully!');
     }
-
-    if ($request->input('from_front')) {
-        return redirect()->route('donate.thankyou')->with('success', 'Donation submitted successfully!');
-    }
-
-    return redirect()->route('donations.index')->with('success', 'Donation submitted successfully!');
-}
-
 
     /**
      * Display the specified donation.
@@ -88,16 +84,27 @@ public function store(StoreDonationRequest $request)
             return response()->json($donation->load('user'));
         }
 
+        if ($request->routeIs('donate.show')) {
+            return view('frontoffice.pages.donations.show', compact('donation'));
+        }
+
         return view('backoffice.pages.donations.show', compact('donation'));
     }
 
     /**
      * Show the form for editing the specified donation.
      */
-    public function edit(Donation $donation)
+    public function edit(Donation $donation, Request $request)
     {
         if ($donation->user_id !== Auth::id()) {
-            return redirect()->route('donations.index')->with('error', 'Non autorisé');
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Non autorisé'], 403);
+            }
+            return redirect()->route('mes-donations')->with('error', 'Non autorisé');
+        }
+
+        if ($request->routeIs('donate.edit')) {
+            return view('frontoffice.pages.donations.edit', compact('donation'));
         }
 
         return view('backoffice.pages.donations.edit', compact('donation'));
@@ -106,16 +113,23 @@ public function store(StoreDonationRequest $request)
     /**
      * Update the specified donation.
      */
-   public function update(UpdateDonationRequest $request, Donation $donation)
-{
-    $donation->update($request->only(['location', 'product_name', 'quantity', 'type', 'description', 'donation_date', 'status']));
+    public function update(UpdateDonationRequest $request, Donation $donation)
+    {
+        if ($donation->user_id !== Auth::id()) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Non autorisé'], 403);
+            }
+            return redirect()->route('mes-donations')->with('error', 'Non autorisé');
+        }
 
-    if ($request->wantsJson() || $request->ajax()) {
-        return response()->json($donation->load('user'));
+        $donation->update($request->only(['location', 'product_name', 'quantity', 'type', 'description', 'donation_date', 'status']));
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json($donation->load('user'));
+        }
+
+        return redirect()->route('mes-donations')->with('success', 'Donation mise à jour avec succès');
     }
-
-    return redirect()->route('donations.index')->with('success', 'Donation mise à jour avec succès');
-}
 
     /**
      * Remove the specified donation.
@@ -133,7 +147,7 @@ public function store(StoreDonationRequest $request)
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json(['error' => 'Non autorisé'], 403);
             }
-            return redirect()->route('donations.index')->with('error', 'Non autorisé');
+            return redirect()->route('mes-donations')->with('error', 'Non autorisé');
         }
 
         $donation->delete();
@@ -142,7 +156,7 @@ public function store(StoreDonationRequest $request)
             return response()->json(['message' => 'Donation supprimée avec succès']);
         }
 
-        return redirect()->route('donations.index')->with('success', 'Donation supprimée avec succès');
+        return redirect()->route('mes-donations')->with('success', 'Donation supprimée avec succès');
     }
 
     /**
@@ -170,7 +184,6 @@ public function store(StoreDonationRequest $request)
             ->with('user')
             ->orderBy('created_at', 'desc');
 
-        // Apply search filter for product_name
         if ($request->filled('search')) {
             $query->where('product_name', 'like', '%' . $request->input('search') . '%');
             Log::info('Applying search filter', [
@@ -178,7 +191,6 @@ public function store(StoreDonationRequest $request)
             ]);
         }
 
-        // Apply type filter
         if ($request->filled('type')) {
             $query->where('type', $request->input('type'));
             Log::info('Applying type filter', [
@@ -196,6 +208,40 @@ public function store(StoreDonationRequest $request)
 
         return view('frontoffice.pages.donations.donationpage', compact('acceptedDonations'));
     }
+
+    /**
+     * Display all donations created by the authenticated user.
+     */
+    public function myDonationsFront(Request $request)
+    {
+        if (!Auth::check()) {
+            return redirect()->route('login')->with('error', 'Authentification requise');
+        }
+
+        $query = Donation::where('user_id', Auth::id())
+            ->orderBy('created_at', 'desc');
+
+        // Apply search filter
+        if ($request->filled('search')) {
+            $query->where('product_name', 'like', '%' . $request->input('search') . '%');
+            Log::info('Applying search filter for my donations', [
+                'search' => $request->input('search'),
+            ]);
+        }
+
+        // Apply type filter
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+            Log::info('Applying type filter for my donations', [
+                'type' => $request->input('type'),
+            ]);
+        }
+
+        $donations = $query->get();
+
+        return view('frontoffice.pages.donations.my_donations', compact('donations'));
+    }
+
 
     /**
      * Frontoffice form for creating a new donation.
@@ -226,7 +272,6 @@ public function store(StoreDonationRequest $request)
             return redirect()->route('donate.donationpage')->with('error', 'This donation is not available to take.');
         }
 
-        // Check if there are any accepted requests
         $acceptedRequest = DonationRequest::where('donation_id', $donation->id)
             ->where('status', 'accepted')
             ->first();
@@ -262,7 +307,6 @@ public function store(StoreDonationRequest $request)
                 : redirect()->route('donate.donationpage')->with('error', 'Ce don n\'est pas disponible pour une demande');
         }
 
-        // Check if user already requested this donation
         $existingRequest = DonationRequest::where('donation_id', $donation->id)
             ->where('user_id', Auth::id())
             ->first();
@@ -290,9 +334,10 @@ public function store(StoreDonationRequest $request)
     public function showRequests(Donation $donation, Request $request)
     {
         if (!Auth::check() || $donation->user_id !== Auth::id()) {
-            return $request->wantsJson() || $request->ajax()
-                ? response()->json(['error' => 'Non autorisé'], 403)
-                : redirect()->route('donations.index')->with('error', 'Non autorisé');
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Non autorisé'], 403);
+            }
+            return redirect()->route('mes-donations')->with('error', 'Non autorisé');
         }
 
         $requests = DonationRequest::where('donation_id', $donation->id)
@@ -301,6 +346,10 @@ public function store(StoreDonationRequest $request)
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json($requests);
+        }
+
+        if ($request->routeIs('donate.showRequests')) {
+            return view('frontoffice.pages.donations.requests', compact('donation', 'requests'));
         }
 
         return view('backoffice.pages.donations.requests', compact('donation', 'requests'));
@@ -312,29 +361,32 @@ public function store(StoreDonationRequest $request)
     public function acceptRequest(DonationRequest $donationRequest, Request $request)
     {
         if (!Auth::check() || $donationRequest->donation->user_id !== Auth::id()) {
-            return $request->wantsJson() || $request->ajax()
-                ? response()->json(['error' => 'Non autorisé'], 403)
-                : redirect()->route('donations.index')->with('error', 'Non autorisé');
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Non autorisé'], 403);
+            }
+            return redirect()->route('mes-donations')->with('error', 'Non autorisé');
         }
 
         if ($donationRequest->status !== 'pending') {
-            return $request->wantsJson() || $request->ajax()
-                ? response()->json(['error' => 'Cette demande a déjà été traitée'], 403)
-                : redirect()->route('donations.showRequests', $donationRequest->donation_id)->with('error', 'Cette demande a déjà été traitée');
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Cette demande a déjà été traitée'], 403);
+            }
+            return redirect()->route('donate.showRequests', $donationRequest->donation_id)->with('error', 'Cette demande a déjà été traitée');
         }
 
         $donationRequest->update(['status' => 'accepted']);
         $donationRequest->donation->update(['status' => 'taken', 'taken_by_user_id' => $donationRequest->user_id]);
 
-        // Reject other pending requests for this donation
         DonationRequest::where('donation_id', $donationRequest->donation_id)
             ->where('id', '!=', $donationRequest->id)
             ->where('status', 'pending')
             ->update(['status' => 'rejected']);
 
-        return $request->wantsJson() || $request->ajax()
-            ? response()->json(['message' => 'Demande acceptée avec succès'])
-            : redirect()->route('donations.showRequests', $donationRequest->donation_id)->with('success', 'Demande acceptée avec succès');
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['message' => 'Demande acceptée avec succès']);
+        }
+
+        return redirect()->route('donate.showRequests', $donationRequest->donation_id)->with('success', 'Demande acceptée avec succès');
     }
 
     /**
@@ -343,22 +395,16 @@ public function store(StoreDonationRequest $request)
     public function rejectRequest(DonationRequest $donationRequest, Request $request)
     {
         if (!Auth::check() || $donationRequest->donation->user_id !== Auth::id()) {
-            return $request->wantsJson() || $request->ajax()
-                ? response()->json(['error' => 'Non autorisé'], 403)
-                : redirect()->route('donations.index')->with('error', 'Non autorisé');
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Non autorisé'], 403);
+            }
+            return redirect()->route('mes-donations')->with('error', 'Non autorisé');
         }
 
-        if ($donationRequest->status !== 'pending') {
-            return $request->wantsJson() || $request->ajax()
-                ? response()->json(['error' => 'Cette demande a déjà été traitée'], 403)
-                : redirect()->route('donations.showRequests', $donationRequest->donation_id)->with('error', 'Cette demande a déjà été traitée');
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['error' => 'Cette demande a déjà été traitée'], 403);
         }
-
-        $donationRequest->update(['status' => 'rejected']);
-
-        return $request->wantsJson() || $request->ajax()
-            ? response()->json(['message' => 'Demande rejetée avec succès'])
-            : redirect()->route('donations.showRequests', $donationRequest->donation_id)->with('success', 'Demande rejetée avec succès');
+        return redirect()->route('donate.showRequests', $donationRequest->donation_id)->with('error', 'Cette demande a déjà été traitée');
     }
 
     /**
@@ -372,10 +418,31 @@ public function store(StoreDonationRequest $request)
                 : redirect()->route('login')->with('error', 'Authentification requise');
         }
 
-        $requests = DonationRequest::where('user_id', Auth::id())
+        $query = DonationRequest::where('user_id', Auth::id())
             ->with('donation', 'donation.user')
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->orderBy('created_at', 'desc');
+
+        // Apply search filter
+        if ($request->filled('search')) {
+            $query->whereHas('donation', function ($q) use ($request) {
+                $q->where('product_name', 'like', '%' . $request->input('search') . '%');
+            });
+            Log::info('Applying search filter for my requests', [
+                'search' => $request->input('search'),
+            ]);
+        }
+
+        // Apply type filter
+        if ($request->filled('type')) {
+            $query->whereHas('donation', function ($q) use ($request) {
+                $q->where('type', $request->input('type'));
+            });
+            Log::info('Applying type filter for my requests', [
+                'type' => $request->input('type'),
+            ]);
+        }
+
+        $requests = $query->get();
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json($requests);

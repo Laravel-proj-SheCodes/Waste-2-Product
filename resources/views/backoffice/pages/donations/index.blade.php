@@ -166,13 +166,16 @@
                                             </td>
                                             <td class="align-middle text-center text-sm">
                                                 @if ($donation->status === 'accepted')
-                                                    <span class="badge badge-sm bg-gradient-success">{{ $donation->status }}</span>
+                                                    <span class="badge badge-sm bg-gradient-success">{{ ucfirst($donation->status) }}</span>
                                                 @elseif ($donation->status === 'rejected')
-                                                    <span class="badge badge-sm bg-gradient-danger">{{ $donation->status }}</span>
+                                                    <span class="badge badge-sm bg-gradient-danger">{{ ucfirst($donation->status) }}</span>
+                                                @elseif ($donation->status === 'taken')
+                                                    <span class="badge badge-sm bg-gradient-info">{{ ucfirst($donation->status) }}</span>
                                                 @else
-                                                    <span class="badge badge-sm bg-gradient-warning">{{ $donation->status }}</span>
+                                                    <span class="badge badge-sm bg-gradient-warning">{{ ucfirst($donation->status) }}</span>
                                                 @endif
                                             </td>
+
                                             <td class="align-middle text-center">
                                                 <a href="{{ route('donations.show', $donation) }}" class="btn btn-link text-info text-sm mb-0" data-toggle="tooltip" data-original-title="View Donation">
                                                     <i class="material-symbols-rounded">visibility</i>
