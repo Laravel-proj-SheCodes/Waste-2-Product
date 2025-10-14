@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\StoreDonationRequest;
+use App\Http\Requests\UpdateDonationRequest;
+use App\Services\AIDescriptionEnhancer;
 
 class DonationController extends Controller
 {
@@ -24,10 +27,15 @@ class DonationController extends Controller
             'total' => Donation::count(),
             'pending' => Donation::where('status', 'pending')->count(),
             'accepted' => Donation::where('status', 'accepted')->count(),
+            'rejected' => Donation::where('status', 'rejected')->count(),
+            'taken' => Donation::where('status', 'taken')->count(),
         ];
 
         if ($request->wantsJson() || $request->ajax()) {
-            return response()->json($donations);
+            return response()->json([
+                'donations' => $donations,
+                'stats' => $stats
+            ]);
         }
 
         return view('backoffice.pages.donations.index', compact('donations', 'stats'));
@@ -44,23 +52,10 @@ class DonationController extends Controller
     /**
      * Store a newly created donation.
      */
-    public function store(Request $request)
+    public function store(StoreDonationRequest $request)
     {
-        if (!Auth::check()) {
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json(['error' => 'Authentification requise'], 401);
-            }
-            return redirect()->route('login')->with('error', 'Authentification requise');
-        }
-
-        $request->validate([
-            'location' => 'required|string',
-            'product_name' => 'required|string',
-            'quantity' => 'required|integer|min:1',
-            'type' => 'required|in:recyclable,renewable',
-            'donation_date' => 'required|date',
-            'description' => 'nullable|string',
-        ]);
+        $enhancer = new AIDescriptionEnhancer();
+        $description = $enhancer->enhance($request->description ?? '');
 
         $donation = Donation::create([
             'user_id' => Auth::id(),
@@ -68,7 +63,7 @@ class DonationController extends Controller
             'product_name' => $request->product_name,
             'quantity' => $request->quantity,
             'type' => $request->type,
-            'description' => $request->description,
+            'description' => $description, // Enhanced version
             'donation_date' => $request->donation_date,
             'status' => 'pending',
         ]);
@@ -77,9 +72,8 @@ class DonationController extends Controller
             return response()->json($donation->load('user'), 201);
         }
 
-        // Check if submission came from frontoffice
         if ($request->input('from_front')) {
-            return redirect()->route('donate.thankyou')->with('success', 'Donation submitted successfully!');
+            return redirect()->route('donate.thankyou')->with('success', 'Donation submitted successfully! Your description has been enhanced by AI.');
         }
 
         return redirect()->route('donations.index')->with('success', 'Donation submitted successfully!');
@@ -94,16 +88,27 @@ class DonationController extends Controller
             return response()->json($donation->load('user'));
         }
 
+        if ($request->routeIs('donate.show')) {
+            return view('frontoffice.pages.donations.show', compact('donation'));
+        }
+
         return view('backoffice.pages.donations.show', compact('donation'));
     }
 
     /**
      * Show the form for editing the specified donation.
      */
-    public function edit(Donation $donation)
+    public function edit(Donation $donation, Request $request)
     {
         if ($donation->user_id !== Auth::id()) {
-            return redirect()->route('donations.index')->with('error', 'Non autorisé');
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Non autorisé'], 403);
+            }
+            return redirect()->route('mes-donations')->with('error', 'Non autorisé');
+        }
+
+        if ($request->routeIs('donate.edit')) {
+            return view('frontoffice.pages.donations.edit', compact('donation'));
         }
 
         return view('backoffice.pages.donations.edit', compact('donation'));
@@ -112,31 +117,14 @@ class DonationController extends Controller
     /**
      * Update the specified donation.
      */
-    public function update(Request $request, Donation $donation)
+    public function update(UpdateDonationRequest $request, Donation $donation)
     {
-        if (!Auth::check()) {
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json(['error' => 'Authentification requise'], 401);
-            }
-            return redirect()->route('login');
-        }
-
         if ($donation->user_id !== Auth::id()) {
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json(['error' => 'Non autorisé'], 403);
             }
-            return redirect()->route('donations.index')->with('error', 'Non autorisé');
+            return redirect()->route('mes-donations')->with('error', 'Non autorisé');
         }
-
-        $request->validate([
-            'location' => 'sometimes|string',
-            'product_name' => 'sometimes|string',
-            'quantity' => 'sometimes|integer|min:1',
-            'type' => 'sometimes|in:recyclable,renewable',
-            'donation_date' => 'sometimes|date',
-            'description' => 'nullable|string',
-            'status' => 'sometimes|in:pending,accepted,rejected,taken',
-        ]);
 
         $donation->update($request->only(['location', 'product_name', 'quantity', 'type', 'description', 'donation_date', 'status']));
 
@@ -144,7 +132,7 @@ class DonationController extends Controller
             return response()->json($donation->load('user'));
         }
 
-        return redirect()->route('donations.index')->with('success', 'Donation mise à jour avec succès');
+        return redirect()->route('mes-donations')->with('success', 'Donation mise à jour avec succès');
     }
 
     /**
@@ -163,7 +151,7 @@ class DonationController extends Controller
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json(['error' => 'Non autorisé'], 403);
             }
-            return redirect()->route('donations.index')->with('error', 'Non autorisé');
+            return redirect()->route('mes-donations')->with('error', 'Non autorisé');
         }
 
         $donation->delete();
@@ -172,7 +160,7 @@ class DonationController extends Controller
             return response()->json(['message' => 'Donation supprimée avec succès']);
         }
 
-        return redirect()->route('donations.index')->with('success', 'Donation supprimée avec succès');
+        return redirect()->route('mes-donations')->with('success', 'Donation supprimée avec succès');
     }
 
     /**
@@ -200,7 +188,6 @@ class DonationController extends Controller
             ->with('user')
             ->orderBy('created_at', 'desc');
 
-        // Apply search filter for product_name
         if ($request->filled('search')) {
             $query->where('product_name', 'like', '%' . $request->input('search') . '%');
             Log::info('Applying search filter', [
@@ -208,7 +195,6 @@ class DonationController extends Controller
             ]);
         }
 
-        // Apply type filter
         if ($request->filled('type')) {
             $query->where('type', $request->input('type'));
             Log::info('Applying type filter', [
@@ -228,12 +214,112 @@ class DonationController extends Controller
     }
 
     /**
+     * Display all donations created by the authenticated user.
+     */
+    public function myDonationsFront(Request $request)
+    {
+        if (!Auth::check()) {
+            return redirect()->route('login')->with('error', 'Authentification requise');
+        }
+
+        $query = Donation::where('user_id', Auth::id())
+            ->orderBy('created_at', 'desc');
+
+        // Apply search filter
+        if ($request->filled('search')) {
+            $query->where('product_name', 'like', '%' . $request->input('search') . '%');
+            Log::info('Applying search filter for my donations', [
+                'search' => $request->input('search'),
+            ]);
+        }
+
+        // Apply type filter
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+            Log::info('Applying type filter for my donations', [
+                'type' => $request->input('type'),
+            ]);
+        }
+
+        $donations = $query->get();
+
+        return view('frontoffice.pages.donations.my_donations', compact('donations'));
+    }
+
+
+    /**
      * Frontoffice form for creating a new donation.
      */
-    public function frontCreate()
+    public function frontCreate(Request $request)
     {
-        return view('frontoffice.pages.donations.create');
+        $description = old('description', '');
+
+        if ($request->filled('preview') && $request->filled('description')) {
+            Log::info('[v0] Enhancement requested', [
+                'original_description' => $request->description,
+                'request_params' => $request->all()
+            ]);
+            
+            try {
+                $enhancer = new AIDescriptionEnhancer();
+                $enhancedDescription = $enhancer->enhance($request->description);
+                
+                Log::info('[v0] Enhancement completed', [
+                    'original' => $request->description,
+                    'enhanced' => $enhancedDescription,
+                    'changed' => $request->description !== $enhancedDescription
+                ]);
+                
+                if ($request->description === $enhancedDescription) {
+                    return redirect()->route('donate.create')
+                        ->with('enhanced_description', $enhancedDescription)
+                        ->with('warning', 'AI returned the same text. Try providing more details in your original description (e.g., "Used plastic bottles - clean, various sizes" instead of just "Used bottles plastic").');
+                }
+                
+                $originalLength = strlen($request->description);
+                $enhancedLength = strlen($enhancedDescription);
+                $growthRatio = $enhancedLength / $originalLength;
+                
+                if ($growthRatio < 1.2) {
+                    Log::warning('[v0] Enhancement was minimal', [
+                        'growth_ratio' => $growthRatio,
+                        'original_length' => $originalLength,
+                        'enhanced_length' => $enhancedLength
+                    ]);
+                    
+                    return redirect()->route('donate.create')
+                        ->with('enhanced_description', $enhancedDescription)
+                        ->with('warning', 'AI enhancement was minimal. Try adding more context to your description for better results.');
+                }
+                
+                // Flash the enhanced description to session
+                return redirect()->route('donate.create')
+                    ->with('enhanced_description', $enhancedDescription)
+                    ->with('success', 'Description enhanced successfully!');
+                    
+            } catch (\Exception $e) {
+                Log::error('[v0] Enhancement failed in controller', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                
+                return redirect()->route('donate.create')
+                    ->with('error', 'Failed to enhance description: ' . $e->getMessage())
+                    ->withInput();
+            }
+        }
+
+        // Check if we have an enhanced description from session
+        if (session()->has('enhanced_description')) {
+            $description = session('enhanced_description');
+            Log::info('[v0] Using enhanced description from session', [
+                'description' => $description
+            ]);
+        }
+
+        return view('frontoffice.pages.donations.create', compact('description'));
     }
+
 
     /**
      * Frontoffice thank you page after donation.
@@ -256,7 +342,6 @@ class DonationController extends Controller
             return redirect()->route('donate.donationpage')->with('error', 'This donation is not available to take.');
         }
 
-        // Check if there are any accepted requests
         $acceptedRequest = DonationRequest::where('donation_id', $donation->id)
             ->where('status', 'accepted')
             ->first();
@@ -292,7 +377,6 @@ class DonationController extends Controller
                 : redirect()->route('donate.donationpage')->with('error', 'Ce don n\'est pas disponible pour une demande');
         }
 
-        // Check if user already requested this donation
         $existingRequest = DonationRequest::where('donation_id', $donation->id)
             ->where('user_id', Auth::id())
             ->first();
@@ -320,9 +404,10 @@ class DonationController extends Controller
     public function showRequests(Donation $donation, Request $request)
     {
         if (!Auth::check() || $donation->user_id !== Auth::id()) {
-            return $request->wantsJson() || $request->ajax()
-                ? response()->json(['error' => 'Non autorisé'], 403)
-                : redirect()->route('donations.index')->with('error', 'Non autorisé');
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Non autorisé'], 403);
+            }
+            return redirect()->route('mes-donations')->with('error', 'Non autorisé');
         }
 
         $requests = DonationRequest::where('donation_id', $donation->id)
@@ -331,6 +416,10 @@ class DonationController extends Controller
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json($requests);
+        }
+
+        if ($request->routeIs('donate.showRequests')) {
+            return view('frontoffice.pages.donations.requests', compact('donation', 'requests'));
         }
 
         return view('backoffice.pages.donations.requests', compact('donation', 'requests'));
@@ -342,29 +431,32 @@ class DonationController extends Controller
     public function acceptRequest(DonationRequest $donationRequest, Request $request)
     {
         if (!Auth::check() || $donationRequest->donation->user_id !== Auth::id()) {
-            return $request->wantsJson() || $request->ajax()
-                ? response()->json(['error' => 'Non autorisé'], 403)
-                : redirect()->route('donations.index')->with('error', 'Non autorisé');
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Non autorisé'], 403);
+            }
+            return redirect()->route('mes-donations')->with('error', 'Non autorisé');
         }
 
         if ($donationRequest->status !== 'pending') {
-            return $request->wantsJson() || $request->ajax()
-                ? response()->json(['error' => 'Cette demande a déjà été traitée'], 403)
-                : redirect()->route('donations.showRequests', $donationRequest->donation_id)->with('error', 'Cette demande a déjà été traitée');
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Cette demande a déjà été traitée'], 403);
+            }
+            return redirect()->route('donate.showRequests', $donationRequest->donation_id)->with('error', 'Cette demande a déjà été traitée');
         }
 
         $donationRequest->update(['status' => 'accepted']);
         $donationRequest->donation->update(['status' => 'taken', 'taken_by_user_id' => $donationRequest->user_id]);
 
-        // Reject other pending requests for this donation
         DonationRequest::where('donation_id', $donationRequest->donation_id)
             ->where('id', '!=', $donationRequest->id)
             ->where('status', 'pending')
             ->update(['status' => 'rejected']);
 
-        return $request->wantsJson() || $request->ajax()
-            ? response()->json(['message' => 'Demande acceptée avec succès'])
-            : redirect()->route('donations.showRequests', $donationRequest->donation_id)->with('success', 'Demande acceptée avec succès');
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['message' => 'Demande acceptée avec succès']);
+        }
+
+        return redirect()->route('donate.showRequests', $donationRequest->donation_id)->with('success', 'Demande acceptée avec succès');
     }
 
     /**
@@ -373,22 +465,16 @@ class DonationController extends Controller
     public function rejectRequest(DonationRequest $donationRequest, Request $request)
     {
         if (!Auth::check() || $donationRequest->donation->user_id !== Auth::id()) {
-            return $request->wantsJson() || $request->ajax()
-                ? response()->json(['error' => 'Non autorisé'], 403)
-                : redirect()->route('donations.index')->with('error', 'Non autorisé');
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Non autorisé'], 403);
+            }
+            return redirect()->route('mes-donations')->with('error', 'Non autorisé');
         }
 
-        if ($donationRequest->status !== 'pending') {
-            return $request->wantsJson() || $request->ajax()
-                ? response()->json(['error' => 'Cette demande a déjà été traitée'], 403)
-                : redirect()->route('donations.showRequests', $donationRequest->donation_id)->with('error', 'Cette demande a déjà été traitée');
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['error' => 'Cette demande a déjà été traitée'], 403);
         }
-
-        $donationRequest->update(['status' => 'rejected']);
-
-        return $request->wantsJson() || $request->ajax()
-            ? response()->json(['message' => 'Demande rejetée avec succès'])
-            : redirect()->route('donations.showRequests', $donationRequest->donation_id)->with('success', 'Demande rejetée avec succès');
+        return redirect()->route('donate.showRequests', $donationRequest->donation_id)->with('error', 'Cette demande a déjà été traitée');
     }
 
     /**
@@ -402,10 +488,31 @@ class DonationController extends Controller
                 : redirect()->route('login')->with('error', 'Authentification requise');
         }
 
-        $requests = DonationRequest::where('user_id', Auth::id())
+        $query = DonationRequest::where('user_id', Auth::id())
             ->with('donation', 'donation.user')
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->orderBy('created_at', 'desc');
+
+        // Apply search filter
+        if ($request->filled('search')) {
+            $query->whereHas('donation', function ($q) use ($request) {
+                $q->where('product_name', 'like', '%' . $request->input('search') . '%');
+            });
+            Log::info('Applying search filter for my requests', [
+                'search' => $request->input('search'),
+            ]);
+        }
+
+        // Apply type filter
+        if ($request->filled('type')) {
+            $query->whereHas('donation', function ($q) use ($request) {
+                $q->where('type', $request->input('type'));
+            });
+            Log::info('Applying type filter for my requests', [
+                'type' => $request->input('type'),
+            ]);
+        }
+
+        $requests = $query->get();
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json($requests);

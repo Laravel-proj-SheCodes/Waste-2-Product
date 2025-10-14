@@ -86,33 +86,39 @@
 
                                 <!-- Simple card footer with green button -->
                                 <div class="card-footer bg-transparent border-0 p-3">
-                                    <form action="{{ route('donations.request', $donation) }}" method="POST" id="requestDonationForm_{{ $donation->id }}">
-                                        @csrf
-                                        <button type="button" class="btn btn-success w-100 py-2 request-donation-btn" data-bs-toggle="modal" data-bs-target="#confirmRequestModal_{{ $donation->id }}">
-                                            Request Donation
-                                        </button>
-                                    </form>
+                                    @if (Auth::check() && $donation->user_id !== Auth::id())
+                                        <form action="{{ route('donations.request', $donation) }}" method="POST" id="requestDonationForm_{{ $donation->id }}">
+                                            @csrf
+                                            <button type="button" class="btn btn-success w-100 py-2 request-donation-btn" data-bs-toggle="modal" data-bs-target="#confirmRequestModal_{{ $donation->id }}">
+                                                Request Donation
+                                            </button>
+                                        </form>
+                                    @else
+                                        <p class="text-muted small mb-0">This is your donation</p>
+                                    @endif
                                 </div>
                             </div>
                         </div>
 
-                        <div class="modal fade" id="confirmRequestModal_{{ $donation->id }}" tabindex="-1" aria-labelledby="confirmRequestModalLabel_{{ $donation->id }}" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content rounded-4 shadow-lg border-0">
-                                    <div class="modal-header border-0">
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body text-center p-4">
-                                        <h4 class="modal-title text-success fw-bold mb-3" id="confirmRequestModalLabel_{{ $donation->id }}">Confirm Your Request</h4>
-                                        <p class="text-muted mb-4">Are you sure you want to request <strong class="text-success">{{ $donation->product_name }}</strong>? Your request will be sent to the donor for approval.</p>
-                                        <div class="d-flex justify-content-center gap-3">
-                                            <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal">Cancel</button>
-                                            <button type="submit" class="btn btn-success px-4 py-2 confirm-request-btn" form="requestDonationForm_{{ $donation->id }}">Yes, Request It!</button>
+                        @if (Auth::check() && $donation->user_id !== Auth::id())
+                            <div class="modal fade" id="confirmRequestModal_{{ $donation->id }}" tabindex="-1" aria-labelledby="confirmRequestModalLabel_{{ $donation->id }}" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content rounded-4 shadow-lg border-0">
+                                        <div class="modal-header border-0">
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body text-center p-4">
+                                            <h4 class="modal-title text-success fw-bold mb-3" id="confirmRequestModalLabel_{{ $donation->id }}">Confirm Your Request</h4>
+                                            <p class="text-muted mb-4">Are you sure you want to request <strong class="text-success">{{ $donation->product_name }}</strong>? Your request will be sent to the donor for approval.</p>
+                                            <div class="d-flex justify-content-center gap-3">
+                                                <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-success px-4 py-2 confirm-request-btn" form="requestDonationForm_{{ $donation->id }}">Yes, Request It!</button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        @endif
                     @endforeach
                 </div>
             @endif
@@ -139,7 +145,7 @@
                 </div>
                 <div class="col-lg-4">
                     <div class="feature bg-success bg-gradient text-white rounded-3 mb-3">
-                        <i class="bi bi-recycle"></i>
+                        <i class="bi bi-lightning-charge"></i>
                     </div>
                     <h2 class="h4 fw-bolder">Why Now?</h2>
                     <p>With waste levels rising globally, immediate action through donations ensures a sustainable future for generations to come.</p>

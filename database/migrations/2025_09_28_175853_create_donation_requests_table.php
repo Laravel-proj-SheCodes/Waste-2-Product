@@ -10,8 +10,13 @@ class CreateDonationRequestsTable extends Migration
     {
         Schema::create('donation_requests', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('donation_id')->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Requester
+            
+            $table->unsignedBigInteger('donation_id');
+            $table->foreign('donation_id')->references('id')->on('donations')->onDelete('cascade');
+
+            $table->unsignedBigInteger('user_id');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+
             $table->enum('status', ['pending', 'accepted', 'rejected'])->default('pending');
             $table->timestamps();
         });

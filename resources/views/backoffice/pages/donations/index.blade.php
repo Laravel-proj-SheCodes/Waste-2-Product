@@ -1,6 +1,108 @@
 @extends('backoffice.layouts.layout')
 
 @section('content')
+        <!-- Statistics Cards -->
+<div class="row mb-4 mt-4 d-flex flex-row flex-nowrap overflow-auto">
+    <div class="col-auto me-2" style="min-width: 250px;">
+        <div class="card">
+            <div class="card-header p-2 ps-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-sm mb-0 text-capitalize">Total Donations</p>
+                        <h4 class="mb-0">{{ $stats['total'] ?? 0 }}</h4>
+                    </div>
+                    <div class="icon icon-md icon-shape bg-gradient-dark shadow-dark text-center border-radius-md">
+                        <i class="material-symbols-rounded opacity-10">inventory_2</i>
+                    </div>
+                </div>
+            </div>
+            <hr class="dark horizontal my-0">
+            <div class="card-footer p-2 ps-3">
+                <p class="mb-0 text-sm"><span class="text-success font-weight-bolder">All time</span> donations</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-auto me-2" style="min-width: 250px;">
+        <div class="card">
+            <div class="card-header p-2 ps-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-sm mb-0 text-capitalize">Pending</p>
+                        <h4 class="mb-0">{{ $stats['pending'] ?? 0 }}</h4>
+                    </div>
+                    <div class="icon icon-md icon-shape bg-gradient-warning shadow-warning text-center border-radius-md">
+                        <i class="material-symbols-rounded opacity-10">schedule</i>
+                    </div>
+                </div>
+            </div>
+            <hr class="dark horizontal my-0">
+            <div class="card-footer p-2 ps-3">
+                <p class="mb-0 text-sm"><span class="text-warning font-weight-bolder">Awaiting</span> validation</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-auto me-2" style="min-width: 250px;">
+        <div class="card">
+            <div class="card-header p-2 ps-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-sm mb-0 text-capitalize">Accepted</p>
+                        <h4 class="mb-0">{{ $stats['accepted'] ?? 0 }}</h4>
+                    </div>
+                    <div class="icon icon-md icon-shape bg-gradient-success shadow-success text-center border-radius-md">
+                        <i class="material-symbols-rounded opacity-10">check_circle</i>
+                    </div>
+                </div>
+            </div>
+            <hr class="dark horizontal my-0">
+            <div class="card-footer p-2 ps-3">
+                <p class="mb-0 text-sm"><span class="text-success font-weight-bolder">Validated</span> donations</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-auto me-2" style="min-width: 250px;">
+        <div class="card">
+            <div class="card-header p-2 ps-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-sm mb-0 text-capitalize">Rejected</p>
+                        <h4 class="mb-0">{{ $stats['rejected'] ?? 0 }}</h4>
+                    </div>
+                    <div class="icon icon-md icon-shape bg-gradient-danger shadow-danger text-center border-radius-md">
+                        <i class="material-symbols-rounded opacity-10">cancel</i>
+                    </div>
+                </div>
+            </div>
+            <hr class="dark horizontal my-0">
+            <div class="card-footer p-2 ps-3">
+                <p class="mb-0 text-sm"><span class="text-danger font-weight-bolder">Declined</span> donations</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-auto" style="min-width: 250px;">
+        <div class="card">
+            <div class="card-header p-2 ps-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-sm mb-0 text-capitalize">Taken</p>
+                        <h4 class="mb-0">{{ $stats['taken'] ?? 0 }}</h4>
+                    </div>
+                    <div class="icon icon-md icon-shape bg-gradient-info shadow-info text-center border-radius-md">
+                        <i class="material-symbols-rounded opacity-10">shopping_bag</i>
+                    </div>
+                </div>
+            </div>
+            <hr class="dark horizontal my-0">
+            <div class="card-footer p-2 ps-3">
+                <p class="mb-0 text-sm"><span class="text-info font-weight-bolder">Collected</span> donations</p>
+            </div>
+        </div>
+    </div>
+</div>
     <div class="container-fluid py-4">
         <div class="row">
             <div class="col-12">
@@ -64,13 +166,16 @@
                                             </td>
                                             <td class="align-middle text-center text-sm">
                                                 @if ($donation->status === 'accepted')
-                                                    <span class="badge badge-sm bg-gradient-success">{{ $donation->status }}</span>
+                                                    <span class="badge badge-sm bg-gradient-success">{{ ucfirst($donation->status) }}</span>
                                                 @elseif ($donation->status === 'rejected')
-                                                    <span class="badge badge-sm bg-gradient-danger">{{ $donation->status }}</span>
+                                                    <span class="badge badge-sm bg-gradient-danger">{{ ucfirst($donation->status) }}</span>
+                                                @elseif ($donation->status === 'taken')
+                                                    <span class="badge badge-sm bg-gradient-info">{{ ucfirst($donation->status) }}</span>
                                                 @else
-                                                    <span class="badge badge-sm bg-gradient-warning">{{ $donation->status }}</span>
+                                                    <span class="badge badge-sm bg-gradient-warning">{{ ucfirst($donation->status) }}</span>
                                                 @endif
                                             </td>
+
                                             <td class="align-middle text-center">
                                                 <a href="{{ route('donations.show', $donation) }}" class="btn btn-link text-info text-sm mb-0" data-toggle="tooltip" data-original-title="View Donation">
                                                     <i class="material-symbols-rounded">visibility</i>
