@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Http\Requests\StoreDonationRequest;
 use App\Http\Requests\UpdateDonationRequest;
+use App\Services\AIDescriptionEnhancer;
 
 class DonationController extends Controller
 {
@@ -53,13 +54,16 @@ class DonationController extends Controller
      */
     public function store(StoreDonationRequest $request)
     {
+        $enhancer = new AIDescriptionEnhancer();
+        $description = $enhancer->enhance($request->description ?? '');
+
         $donation = Donation::create([
             'user_id' => Auth::id(),
             'location' => $request->location,
             'product_name' => $request->product_name,
             'quantity' => $request->quantity,
             'type' => $request->type,
-            'description' => $request->description,
+            'description' => $description, // Enhanced version
             'donation_date' => $request->donation_date,
             'status' => 'pending',
         ]);
@@ -69,7 +73,7 @@ class DonationController extends Controller
         }
 
         if ($request->input('from_front')) {
-            return redirect()->route('donate.thankyou')->with('success', 'Donation submitted successfully!');
+            return redirect()->route('donate.thankyou')->with('success', 'Donation submitted successfully! Your description has been enhanced by AI.');
         }
 
         return redirect()->route('donations.index')->with('success', 'Donation submitted successfully!');
@@ -246,10 +250,76 @@ class DonationController extends Controller
     /**
      * Frontoffice form for creating a new donation.
      */
-    public function frontCreate()
+    public function frontCreate(Request $request)
     {
-        return view('frontoffice.pages.donations.create');
+        $description = old('description', '');
+
+        if ($request->filled('preview') && $request->filled('description')) {
+            Log::info('[v0] Enhancement requested', [
+                'original_description' => $request->description,
+                'request_params' => $request->all()
+            ]);
+            
+            try {
+                $enhancer = new AIDescriptionEnhancer();
+                $enhancedDescription = $enhancer->enhance($request->description);
+                
+                Log::info('[v0] Enhancement completed', [
+                    'original' => $request->description,
+                    'enhanced' => $enhancedDescription,
+                    'changed' => $request->description !== $enhancedDescription
+                ]);
+                
+                if ($request->description === $enhancedDescription) {
+                    return redirect()->route('donate.create')
+                        ->with('enhanced_description', $enhancedDescription)
+                        ->with('warning', 'AI returned the same text. Try providing more details in your original description (e.g., "Used plastic bottles - clean, various sizes" instead of just "Used bottles plastic").');
+                }
+                
+                $originalLength = strlen($request->description);
+                $enhancedLength = strlen($enhancedDescription);
+                $growthRatio = $enhancedLength / $originalLength;
+                
+                if ($growthRatio < 1.2) {
+                    Log::warning('[v0] Enhancement was minimal', [
+                        'growth_ratio' => $growthRatio,
+                        'original_length' => $originalLength,
+                        'enhanced_length' => $enhancedLength
+                    ]);
+                    
+                    return redirect()->route('donate.create')
+                        ->with('enhanced_description', $enhancedDescription)
+                        ->with('warning', 'AI enhancement was minimal. Try adding more context to your description for better results.');
+                }
+                
+                // Flash the enhanced description to session
+                return redirect()->route('donate.create')
+                    ->with('enhanced_description', $enhancedDescription)
+                    ->with('success', 'Description enhanced successfully!');
+                    
+            } catch (\Exception $e) {
+                Log::error('[v0] Enhancement failed in controller', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                
+                return redirect()->route('donate.create')
+                    ->with('error', 'Failed to enhance description: ' . $e->getMessage())
+                    ->withInput();
+            }
+        }
+
+        // Check if we have an enhanced description from session
+        if (session()->has('enhanced_description')) {
+            $description = session('enhanced_description');
+            Log::info('[v0] Using enhanced description from session', [
+                'description' => $description
+            ]);
+        }
+
+        return view('frontoffice.pages.donations.create', compact('description'));
     }
+
 
     /**
      * Frontoffice thank you page after donation.
