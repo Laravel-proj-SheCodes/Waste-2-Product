@@ -53,7 +53,9 @@
                                     <label for="prix" class="form-label fw-semibold text-gray-700">
                                         <i class="bi bi-currency-euro me-1"></i>Prix (€)
                                     </label>
-                                    <input type="number" class="form-control form-control-lg border-2 rounded-2" id="prix" name="prix" step="0.01" min="0" required>
+                                    <input type="number" class="form-control form-control-lg border-2 rounded-2" id="prix" name="prix" step="0.01" required>
+                                    <div class="invalid-feedback" id="prix-error"></div>
+                                    
                                 </div>
                             </div>
                             <div class="d-grid">
@@ -308,6 +310,141 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setupOrderHandlers();
     setupCurrencySelector();
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+let userAnnonceIds = [];
+let selectedCurrency = 'EUR';
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Load user's waste posts for the dropdown
+    loadUserPostDechets();
+    
+    // Load user's announcements first to get ownership data
+    loadMesAnnonces().then(() => {
+        // Then load all announcements with proper ownership detection
+        loadAllAnnonces();
+    });
+    
+    // Setup form handlers
+    setupFormHandlers();
+    
+    // Setup filter handlers
+    setupFilterHandlers();
+    
+    setupOrderHandlers();
+    setupCurrencySelector();
+});
+
+
+function setupFormHandlers() {
+    // Create announcement form
+    document.getElementById('createAnnonceForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitButton = this.querySelector('button[type="submit"]');
+        const spinner = submitButton.querySelector('.spinner-border');
+        
+        const prixInput = document.getElementById('prix');
+        const prixError = document.getElementById('prix-error');
+        prixInput.classList.remove('is-invalid');
+        prixError.textContent = '';
+
+        submitButton.disabled = true;
+        spinner.classList.remove('d-none');
+        
+        fetch('/annonces', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            }
+        })
+        .then(response => {
+            if (response.status === 422) {
+                return response.json().then(data => {
+                    throw { validationErrors: data.errors };
+                });
+            }
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                showAlert(data.error, 'danger');
+            } else {
+                showAlert('Annonce créée avec succès!', 'success');
+                this.reset();
+                loadMesAnnonces().then(() => {
+                    loadAllAnnonces();
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error creating annonce:', error);
+            
+            if (error.validationErrors) {
+                if (error.validationErrors.prix) {
+                    prixInput.classList.add('is-invalid');
+                    prixError.textContent = error.validationErrors.prix[0];
+                }
+                if (error.validationErrors.post_dechet_id) {
+                    showAlert(error.validationErrors.post_dechet_id[0], 'danger');
+                }
+            } else {
+                showAlert('Erreur lors de la création de l\'annonce', 'danger');
+            }
+        })
+        .finally(() => {
+            submitButton.disabled = false;
+            spinner.classList.add('d-none');
+        });
+    });
+    
+    // Edit announcement form
+    document.getElementById('editAnnonceForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const annonceId = document.getElementById('edit_annonce_id').value;
+        const formData = new FormData(this);
+        
+        fetch(`/annonces/${annonceId}`, {
+            method: 'POST', // Laravel interprets _method='PUT'
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                showAlert(data.error, 'danger');
+            } else {
+                showAlert('Annonce mise à jour avec succès!', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('editAnnonceModal')).hide();
+                loadMesAnnonces().then(() => {
+                    loadAllAnnonces();
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error updating annonce:', error);
+            showAlert('Erreur lors de la mise à jour', 'danger');
+        });
+    });
+}
+
 });
 
 function setupCurrencySelector() {
