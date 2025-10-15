@@ -25,10 +25,29 @@
     </div>
 </section>
 
+{{-- Section Formulaire de Création d'Annonce --}}
 <section class="py-5 border-bottom bg-white">
     <div class="container px-5">
         <div class="row gx-5 justify-content-center">
             <div class="col-lg-8">
+                {{-- Affichage des erreurs globales en haut du formulaire --}}
+                @if ($errors->any())
+                    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+                            <div class="flex-grow-1">
+                                <h6 class="alert-heading mb-2 fw-bold">Erreur de validation</h6>
+                                <ul class="mb-0 ps-3">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
                 <div class="card shadow-lg border-0 rounded-3 overflow-hidden">
                     <div class="card-header bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4">
                         <h5 class="mb-0 fw-bold">
@@ -37,29 +56,79 @@
                         <small class="opacity-90">Publiez votre déchet et commencez à vendre</small>
                     </div>
                     <div class="card-body p-4">
-                        <form id="createAnnonceForm">
+                        {{-- Formulaire avec action et method explicites --}}
+                        <form action="{{ route('annonces.store') }}" method="POST">
                             @csrf
                             <div class="row gx-4">
+                                {{-- Champ Déchet --}}
                                 <div class="col-md-6 mb-4">
                                     <label for="post_dechet_id" class="form-label fw-semibold text-gray-700">
                                         <i class="bi bi-box me-1"></i>Sélectionner votre déchet
+                                        <span class="text-danger">*</span>
                                     </label>
-                                    <select class="form-select form-select-lg border-2 rounded-2" id="post_dechet_id" name="post_dechet_id" required>
+                                    <select 
+                                        class="form-select form-select-lg border-2 rounded-2 @error('post_dechet_id') is-invalid @enderror" 
+                                        id="post_dechet_id" 
+                                        name="post_dechet_id" 
+                                        required
+                                    >
                                         <option value="">Choisir un déchet...</option>
-                                        
+                                        {{-- Les options seront chargées par JS --}}
                                     </select>
+                                    @error('post_dechet_id')
+                                        <div class="invalid-feedback d-block">
+                                            <i class="bi bi-exclamation-circle me-1"></i>
+                                            {{ $message }}
+                                        </div>
+                                    @enderror
                                 </div>
+
+                                {{-- Champ Prix --}}
                                 <div class="col-md-6 mb-4">
                                     <label for="prix" class="form-label fw-semibold text-gray-700">
                                         <i class="bi bi-currency-euro me-1"></i>Prix (€)
+                                        <span class="text-danger">*</span>
                                     </label>
-                                    <input type="number" class="form-control form-control-lg border-2 rounded-2" id="prix" name="prix" step="0.01" min="0" required>
+                                    
+                                    <div class="input-group input-group-lg">
+                                        <span class="input-group-text bg-light @error('prix') border-danger @enderror">
+                                            <i class="bi bi-currency-euro text-success"></i>
+                                        </span>
+                                        <input
+                                            type="number"
+                                            class="form-control @error('prix') is-invalid @enderror"
+                                            id="prix"
+                                            name="prix"
+                                            value="{{ old('prix') }}"
+                                            placeholder="Ex: 50.00"
+                                            step="0.01"
+                                            min="0"
+                                            required
+                                        >
+                                    </div>
+
+                                    {{-- Affichage de l'erreur juste sous le champ --}}
+                                    @error('prix')
+                                        <div class="text-danger mt-2 d-flex align-items-start">
+                                            <i class="bi bi-x-circle-fill me-2 mt-1"></i>
+                                            <small class="fw-semibold">{{ $message }}</small>
+                                        </div>
+                                    @enderror
+
+                                    {{-- Message d'aide si pas d'erreur --}}
+                                    @if(!$errors->has('prix'))
+                                        <small class="form-text text-muted mt-2 d-block">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Entrez un prix positif (ex: 50.00)
+                                        </small>
+                                    @endif
                                 </div>
                             </div>
+
+                            {{-- Bouton de soumission --}}
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-success btn-lg rounded-2 py-3 fw-semibold">
                                     <i class="bi bi-check-circle me-2"></i>Créer l'Annonce
-                                    <span class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
                                 </button>
                             </div>
                         </form>
@@ -69,6 +138,8 @@
         </div>
     </div>
 </section>
+
+{{-- Section Mes Annonces --}}
 
 
 <section class="py-5 bg-gray-50">
@@ -115,6 +186,7 @@
     </div>
 </section>
 
+{{-- Section Toutes les Annonces --}}
 <section class="py-5 border-bottom bg-white">
     <div class="container px-5">
         <div class="text-center mb-5">
@@ -155,7 +227,7 @@
         </div>
     </div>
 </section>
-
+  
 
 <div class="modal fade" id="editAnnonceModal" tabindex="-1" aria-labelledby="editAnnonceModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -281,6 +353,7 @@
     window.currentUserId = "{{ auth()->id() ?? '' }}";
 </script>
 
+
 @endsection
 
 @push('scripts')
@@ -320,35 +393,12 @@ function setupCurrencySelector() {
             // Recharge les deux listes avec la nouvelle devise
             Promise.all([
                 loadMesAnnonces(),
-                loadAllAnnoncesWithCurrency()
+                
             ]);
         });
     }
 }
-function loadAllAnnoncesWithCurrency() {
-    const search = document.getElementById('searchFilter').value;
-    const status = document.getElementById('statusFilter').value;
-    const query = new URLSearchParams();
-    if (search) query.append('search', search);
-    if (status) query.append('status', status);
-    query.append('to', selectedCurrency);
 
-    return fetch(`/annonces?${query.toString()}`, {
-        headers: {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': csrfToken
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayAllAnnonces(data.data || data);
-    })
-    .catch(error => {
-        console.error('Error loading all annonces with currency:', error);
-        showAlert('Erreur lors du chargement des annonces converties', 'danger');
-    });
-}
 
 function loadUserPostDechets() {
     console.log('Loading user post dechets...');
@@ -436,28 +486,41 @@ function displayMesAnnonces(annonces) {
     document.getElementById('emptyState').style.display = 'none';
 
     container.innerHTML = annonces.map(annonce => {
-        const isOwnAnnouncement = true; // mes annonces = always own
-        // Fix: Use snake_case 'converted_price' from API response
         const convertedPrice = annonce.converted_price ?? annonce.prix;
         const priceWithCurrency = `${Number(convertedPrice).toFixed(2)} ${getCurrencySymbol(selectedCurrency)}`;
+        const hasOrders = annonce.commandes && annonce.commandes.length > 0;
 
         return `
             <div class="col-lg-4 col-md-6 mb-4">
                 <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden hover-lift">
                     <div class="card-header bg-white border-0 p-3">
-                        <span class="badge bg-blue-100 text-blue-800 px-3 py-2 rounded-pill"><i class="bi bi-person me-1"></i>Votre annonce</span>
+                        <span class="badge bg-blue-100 text-blue-800 px-3 py-2 rounded-pill">
+                            <i class="bi bi-person me-1"></i>Votre annonce
+                        </span>
                     </div>
                     <div class="card-body p-4">
                         <h5 class="card-title fw-bold text-gray-800 mb-2">${annonce.post_dechet?.titre || 'Titre non disponible'}</h5>
-                        <p class="card-text text-gray-600 mb-3">${annonce.post_dechet?.description ? annonce.post_dechet.description.substring(0,100)+'...' : ''}</p>
+                        <p class="card-text text-gray-600 mb-3">
+                            ${annonce.post_dechet?.description ? annonce.post_dechet.description.substring(0,100)+'...' : ''}
+                        </p>
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <span class="h4 text-success mb-0 fw-bold">${priceWithCurrency}</span>
-                            <small class="text-gray-500 fw-semibold"><i class="bi bi-geo-alt me-1"></i>${annonce.post_dechet?.localisation || ''}</small>
+                            <small class="text-gray-500 fw-semibold">
+                                <i class="bi bi-geo-alt me-1"></i>${annonce.post_dechet?.localisation || ''}
+                            </small>
                         </div>
-                        <div class="d-grid">
-                            <button class="btn btn-outline-primary btn-sm rounded-2" onclick="editAnnonce(${annonce.id}, ${annonce.prix}, '${annonce.statut_annonce}')">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary btn-sm rounded-2 w-100" 
+                                onclick="editAnnonce(${annonce.id}, ${annonce.prix}, '${annonce.statut_annonce}')">
                                 <i class="bi bi-pencil-square me-1"></i>Modifier
                             </button>
+
+                            ${!hasOrders ? `
+                                <button class="btn btn-outline-danger btn-sm rounded-2 w-100" 
+                                    onclick="deleteAnnonce(${annonce.id})">
+                                    <i class="bi bi-trash3 me-1"></i>Supprimer
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
@@ -465,6 +528,7 @@ function displayMesAnnonces(annonces) {
         `;
     }).join('');
 }
+
 
 
 // <CHANGE> Nouvelle fonction pour obtenir le symbole de devise
@@ -632,10 +696,7 @@ function setupFormHandlers() {
                 });
             }
         })
-        .catch(error => {
-            console.error('Error creating annonce:', error);
-            showAlert('Erreur lors de la création de l\'annonce', 'danger');
-        })
+       
         .finally(() => {
             submitButton.disabled = false;
             spinner.classList.add('d-none');
@@ -675,10 +736,7 @@ function setupFormHandlers() {
                 });
             }
         })
-        .catch(error => {
-            console.error('Error updating annonce:', error);
-            showAlert('Erreur lors de la mise à jour', 'danger');
-        });
+        
     });
 }
 
@@ -809,33 +867,33 @@ function editAnnonce(id, prix, statut) {
     new bootstrap.Modal(document.getElementById('editAnnonceModal')).show();
 }
 
-function deleteAnnonce(id) {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette annonce?')) return;
+function deleteAnnonce(annonceId) {
+    if (!confirm('Voulez-vous vraiment supprimer cette annonce ?')) return;
 
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-    fetch(`/annonces/${id}`, {
+    fetch(`/annonces/${annonceId}`, {
         method: 'DELETE',
         headers: {
             'X-CSRF-TOKEN': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
         }
     })
-    .then(async response => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Erreur inconnue');
-        return data;
-    })
+    .then(response => response.json())
     .then(data => {
-        showAlert(data.message || 'Annonce supprimée avec succès!', 'success');
-        loadMesAnnonces().then(() => loadAllAnnonces());
+        if (data.success) {
+            showAlert('Annonce supprimée avec succès.', 'success');
+            loadMesAnnonces();
+            loadAllAnnonces();
+        } else {
+            showAlert(data.message || 'Impossible de supprimer cette annonce.', 'danger');
+        }
     })
     .catch(error => {
         console.error('Error deleting annonce:', error);
-        showAlert(error.message || 'Erreur lors de la suppression', 'danger');
+        showAlert('Erreur lors de la suppression de l’annonce.', 'danger');
     });
 }
+
 
 
 function getStatusBadgeClass(status) {
@@ -902,7 +960,55 @@ const additionalStyles = `
 .bg-gradient-to-r {
     background: linear-gradient(to right, var(--tw-gradient-stops));
 }
+.is-invalid {
+    border-color: #dc3545 !important;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
 
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: #dc3545;
+    font-weight: 500;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+    color: #842029;
+    border-left: 4px solid #dc3545;
+}
+
+.form-control:focus.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+
+.input-group .is-invalid ~ .invalid-feedback {
+    margin-left: 0;
+}
+
+/* Animation pour l'apparition de l'erreur */
+.alert-danger.fade.show {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 .from-green-50 { --tw-gradient-from: #f0fdf4; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(240, 253, 244, 0)); }
 .to-emerald-50 { --tw-gradient-to: #ecfdf5; }
 .from-green-500 { --tw-gradient-from: #22c55e; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(34, 197, 94, 0)); }
@@ -946,4 +1052,5 @@ const additionalStyles = `
 // Inject additional styles
 document.head.insertAdjacentHTML('beforeend', additionalStyles);
 </script>
+
 @endpush
