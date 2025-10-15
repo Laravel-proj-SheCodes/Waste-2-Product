@@ -17,6 +17,12 @@
                                 <div class="fs-5 fw-semibold">Waste2Product</div>
                             </div>
 
+                            @if (session('status'))
+                                <div class="alert alert-success rounded-3">
+                                    {{ session('status') }}
+                                </div>
+                            @endif
+
                             @if ($errors->any())
                                 <div class="alert alert-danger rounded-3">
                                     <ul class="m-0 ps-3">

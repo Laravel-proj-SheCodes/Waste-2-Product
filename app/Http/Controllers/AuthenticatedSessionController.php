@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -69,34 +70,35 @@ class AuthenticatedSessionController extends Controller
             'name'                  => ['required', 'string', 'max:255'],
             'email'                 => ['required', 'email', 'max:255', 'unique:users,email'],
             'password'              => ['required', 'min:6', 'confirmed'], // nécessite password_confirmation
+            'role'                  => ['sometimes', 'in:client,admin'], // Optionnel, pour valider le rôle caché
         ]);
 
-        // 2) Créer l'utilisateur (par défaut rôle client)
+        // 2) Créer l'utilisateur
         $user = User::create([
             'name'     => $data['name'],
             'email'    => $data['email'],
             'password' => Hash::make($data['password']),
-            'role'     => 'client', // adapte si tu veux un autre défaut
+            'role'     => $data['role'] ?? 'client', // Utilise le rôle du formulaire ou défaut
         ]);
 
-        // 3) Connecter et rediriger
-        Auth::login($user);
+        // 3) Envoyer l'email de vérification (via événement Laravel)
+        event(new Registered($user));
 
-        return redirect()->route('home');
+        // 4) Rediriger vers login avec message (sans connecter l'utilisateur)
+        return redirect()->route('login')->with('status', 'Un lien de vérification a été envoyé à votre email. Veuillez vérifier avant de vous connecter.');
     }
 
     /**
      * Déconnexion.
      */
-   public function destroy(Request $request)
-{
-    Auth::logout();
+    public function destroy(Request $request)
+    {
+        Auth::logout();
 
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-    // Redirection vers la page home
-    return redirect()->route('home');
-}
-
+        // Redirection vers la page home
+        return redirect()->route('home');
+    }
 }

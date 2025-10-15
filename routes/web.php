@@ -27,30 +27,34 @@ use App\Http\Controllers\Front\PropositionFrontController;
 
 use App\Http\Controllers\EcoBotGroqController;
 
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
+
 /* =========================
  |  Pages simples
  * ========================= */
-Route::view('/home', 'frontoffice.pages.home')->name('home');
+Route::view('/home', 'frontoffice.pages.home')->name('home')->middleware(['auth', 'verified']);
 Route::get('/', fn () => redirect()->route('home'));
 
 
 /* =========================
  |  Backoffice commun
  * ========================= */
-Route::get('/dashboard', fn () => view('backoffice.pages.dashboard'))->name('dashboard');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', fn () => view('backoffice.pages.dashboard'))->name('dashboard');
 
-Route::resource('postdechets', PostDechetController::class);
-Route::resource('propositions', PropositionController::class);
+    Route::resource('postdechets', PostDechetController::class);
+    Route::resource('propositions', PropositionController::class);
 
+    // Proposals (transformator)
+    //Route::resource('proposition-transformations', PropositionTransformationController::class);
 
-// Proposals (transformator)
-//Route::resource('proposition-transformations', PropositionTransformationController::class);
+    // Processes
+    //Route::resource('processus-transformations', ProcessusTransformationController::class);
 
-// Processes
-//Route::resource('processus-transformations', ProcessusTransformationController::class);
-
-// Products
-//Route::resource('produit-transformes', ProduitTransformeController::class);
+    // Products
+    //Route::resource('produit-transformes', ProduitTransformeController::class);
+});
 
 /* =========================
  |  Authentification
@@ -60,6 +64,21 @@ Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('l
 Route::get('/register',  [AuthenticatedSessionController::class, 'register'])->name('register');
 Route::post('/register', [AuthenticatedSessionController::class, 'registerStore'])->name('register.store');
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+
+// Routes pour la vérification d'email
+Route::get('/email/verify', function () {
+    return view('frontoffice.authentication.verify-email');
+})->middleware('auth')->name('verification.notice');
+
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill();
+    return redirect()->route('home');
+})->middleware(['auth', 'signed'])->name('verification.verify');
+
+Route::post('/email/resend', function (Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+    return back()->with('message', 'Lien de vérification renvoyé !');
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
 // Marquer une notification comme lue + rediriger
 // routes/web.php
@@ -90,12 +109,17 @@ Route::get('/debug-notif', function () {
 /* =========================
  |  Marketplace
  * ========================= */
-Route::resource('annonces', AnnonceMarketplaceController::class);
-Route::resource('commandes', CommandeController::class);
-Route::get('mes-annonces', [AnnonceMarketplaceController::class, 'mesAnnonces'])->name('mes-annonces');
-Route::get('mes-commandes', [CommandeController::class, 'mesCommandes'])->name('mes-commandes');
-Route::get('commandes-recues', [CommandeController::class, 'commandesRecues'])->name('commandes-recues');
-Route::patch('annonces/{annonce}/statut', [AnnonceMarketplaceController::class, 'updateStatut'])->name('annonces.statut');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::resource('annonces', AnnonceMarketplaceController::class);
+    Route::resource('commandes', CommandeController::class);
+    Route::get('mes-annonces', [AnnonceMarketplaceController::class, 'mesAnnonces'])->name('mes-annonces');
+    Route::get('mes-commandes', [CommandeController::class, 'mesCommandes'])->name('mes-commandes');
+    Route::get('commandes-recues', [CommandeController::class, 'commandesRecues'])->name('commandes-recues');
+    Route::patch('annonces/{annonce}/statut', [AnnonceMarketplaceController::class, 'updateStatut'])->name('annonces.statut');
+    Route::get('annonces/{annonce}/commandes', [AnnonceMarketplaceController::class, 'showCommandes'])
+            ->name('annonces.commandes');
+});
+
 Route::get('/marketplace', function () {
     return view('frontoffice.pages.marketplace.marketplace');
 })->name('marketplace');
@@ -105,19 +129,17 @@ Route::get('/commandes-page', function () {
 
 Route::get('/api/mes-post-dechets', [AnnonceMarketplaceController::class, 'getUserPostDechets'])->name('api.mes-post-dechets');
 
-Route::get('annonces/{annonce}/commandes', [AnnonceMarketplaceController::class, 'showCommandes'])
-        ->name('annonces.commandes');
 /* =========================
  |  Troc – Backoffice
  * ========================= */
-Route::resource('transactions-troc', TransactionTrocController::class);
-Route::get('/troc', [PostDechetController::class, 'indexTroc'])->name('postdechets.troc');
-Route::get('/postdechets/{post}/offres', [PostDechetController::class, 'showOffres'])->name('postdechets.offres');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::resource('transactions-troc', TransactionTrocController::class);
+    Route::get('/troc', [PostDechetController::class, 'indexTroc'])->name('postdechets.troc');
+    Route::get('/postdechets/{post}/offres', [PostDechetController::class, 'showOffres'])->name('postdechets.offres');
 
-/* OffreTroc Backoffice */
-Route::prefix('offres-troc')->group(function () {
-    Route::get('/', [OffreTrocController::class, 'index'])->name('offres-troc.index');
-    Route::middleware('auth')->group(function () {
+    /* OffreTroc Backoffice */
+    Route::prefix('offres-troc')->group(function () {
+        Route::get('/', [OffreTrocController::class, 'index'])->name('offres-troc.index');
         Route::get('/create/{postId}', [OffreTrocController::class, 'create'])->name('offres-troc.create');
         Route::post('/{postId}', [OffreTrocController::class, 'store'])->name('offres-troc.store');
         Route::get('/{postId}', [OffreTrocController::class, 'show'])->name('offres-troc.show');
@@ -139,17 +161,15 @@ Route::get('/home/offres-troc/thankyou', function() {
 })->name('offres-troc.thankyou');
 
 /* OffreTroc Frontoffice */
-Route::prefix('home/offres-troc')->group(function () {
-    Route::middleware('auth')->group(function () {
-        Route::get('/', [OffreTrocController::class, 'indexFront'])->name('postdechets.troc-index.front');
-        Route::get('/create/{postId}', [OffreTrocController::class, 'createFront'])->name('offres-troc.create.front');
-        Route::post('/{postId}', [OffreTrocController::class, 'storeFront'])->name('offres-troc.storeFront');
-        Route::get('/{postId}', [OffreTrocController::class, 'showFront'])->name('offres-troc.show.front');
-        Route::patch('/{id}/statut', [OffreTrocController::class, 'updateStatutFront'])->name('offres-troc.update-statut.front');
-        Route::get('/{id}/edit', [OffreTrocController::class, 'editFront'])->name('offres-troc.edit.front');
-        Route::put('/{id}', [OffreTrocController::class, 'updateFront'])->name('offres-troc.update.front');
-        Route::delete('/{id}', [OffreTrocController::class, 'destroyFront'])->name('offres-troc.destroy.front');
-    });
+Route::prefix('home/offres-troc')->middleware(['auth', 'verified'])->group(function () {
+    Route::get('/', [OffreTrocController::class, 'indexFront'])->name('postdechets.troc-index.front');
+    Route::get('/create/{postId}', [OffreTrocController::class, 'createFront'])->name('offres-troc.create.front');
+    Route::post('/{postId}', [OffreTrocController::class, 'storeFront'])->name('offres-troc.storeFront');
+    Route::get('/{postId}', [OffreTrocController::class, 'showFront'])->name('offres-troc.show.front');
+    Route::patch('/{id}/statut', [OffreTrocController::class, 'updateStatutFront'])->name('offres-troc.update-statut.front');
+    Route::get('/{id}/edit', [OffreTrocController::class, 'editFront'])->name('offres-troc.edit.front');
+    Route::put('/{id}', [OffreTrocController::class, 'updateFront'])->name('offres-troc.update.front');
+    Route::delete('/{id}', [OffreTrocController::class, 'destroyFront'])->name('offres-troc.destroy.front');
 });
 
 /* =========================
@@ -160,7 +180,7 @@ Route::prefix('waste-posts')->name('front.waste-posts.')->group(function () {
     Route::get('/', [PostDechetFrontController::class, 'index'])->name('index');
 
     // Protégé
-    Route::middleware('auth')->group(function () {
+    Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/create', [PostDechetFrontController::class, 'create'])->name('create');
         Route::post('/',      [PostDechetFrontController::class, 'store'])->name('store');
 
@@ -176,7 +196,7 @@ Route::prefix('waste-posts')->name('front.waste-posts.')->group(function () {
 /* =========================
  |  Donation
  * ========================= */
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('donations', DonationController::class);
     Route::get('mes-donations', [DonationController::class, 'myDonationsFront'])->name('mes-donations');
     Route::get('donations/{donation}/requests', [DonationController::class, 'showRequests'])->name('donations.showRequests');
@@ -202,7 +222,7 @@ Route::middleware('auth')->group(function () {
  * ========================= */
 Route::prefix('mes-propositions')
     ->name('front.propositions.')
-    ->middleware('auth')
+    ->middleware(['auth', 'verified'])
     ->group(function () {
         Route::get('/',                      [\App\Http\Controllers\Front\PropositionFrontController::class, 'index'])->name('index');
         Route::get('/create/{postDechet}',   [\App\Http\Controllers\Front\PropositionFrontController::class, 'create'])->name('create');
@@ -224,7 +244,7 @@ Route::post('/analyze-image', [PostDechetFrontController::class, 'analyze'])->na
 
 Route::prefix('home/transactions-troc')
     ->name('transactions-troc.')
-    ->middleware('auth')
+    ->middleware(['auth', 'verified'])
     ->group(function () {
         Route::get('/', [TransactionTrocController::class, 'indexFront'])->name('index.front');
         Route::get('/{id}', [TransactionTrocController::class, 'showFront'])->name('show.front');
