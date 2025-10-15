@@ -53,7 +53,9 @@
                                     <label for="prix" class="form-label fw-semibold text-gray-700">
                                         <i class="bi bi-currency-euro me-1"></i>Prix (€)
                                     </label>
-                                    <input type="number" class="form-control form-control-lg border-2 rounded-2" id="prix" name="prix" step="0.01" min="0" required>
+                                    <input type="number" class="form-control form-control-lg border-2 rounded-2" id="prix" name="prix" step="0.01" required>
+                                    <div class="invalid-feedback" id="prix-error"></div>
+                                    
                                 </div>
                             </div>
                             <div class="d-grid">
@@ -308,6 +310,141 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setupOrderHandlers();
     setupCurrencySelector();
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+let userAnnonceIds = [];
+let selectedCurrency = 'EUR';
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Load user's waste posts for the dropdown
+    loadUserPostDechets();
+    
+    // Load user's announcements first to get ownership data
+    loadMesAnnonces().then(() => {
+        // Then load all announcements with proper ownership detection
+        loadAllAnnonces();
+    });
+    
+    // Setup form handlers
+    setupFormHandlers();
+    
+    // Setup filter handlers
+    setupFilterHandlers();
+    
+    setupOrderHandlers();
+    setupCurrencySelector();
+});
+
+
+function setupFormHandlers() {
+    // Create announcement form
+    document.getElementById('createAnnonceForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitButton = this.querySelector('button[type="submit"]');
+        const spinner = submitButton.querySelector('.spinner-border');
+        
+        const prixInput = document.getElementById('prix');
+        const prixError = document.getElementById('prix-error');
+        prixInput.classList.remove('is-invalid');
+        prixError.textContent = '';
+
+        submitButton.disabled = true;
+        spinner.classList.remove('d-none');
+        
+        fetch('/annonces', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            }
+        })
+        .then(response => {
+            if (response.status === 422) {
+                return response.json().then(data => {
+                    throw { validationErrors: data.errors };
+                });
+            }
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                showAlert(data.error, 'danger');
+            } else {
+                showAlert('Annonce créée avec succès!', 'success');
+                this.reset();
+                loadMesAnnonces().then(() => {
+                    loadAllAnnonces();
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error creating annonce:', error);
+            
+            if (error.validationErrors) {
+                if (error.validationErrors.prix) {
+                    prixInput.classList.add('is-invalid');
+                    prixError.textContent = error.validationErrors.prix[0];
+                }
+                if (error.validationErrors.post_dechet_id) {
+                    showAlert(error.validationErrors.post_dechet_id[0], 'danger');
+                }
+            } else {
+                showAlert('Erreur lors de la création de l\'annonce', 'danger');
+            }
+        })
+        .finally(() => {
+            submitButton.disabled = false;
+            spinner.classList.add('d-none');
+        });
+    });
+    
+    // Edit announcement form
+    document.getElementById('editAnnonceForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const annonceId = document.getElementById('edit_annonce_id').value;
+        const formData = new FormData(this);
+        
+        fetch(`/annonces/${annonceId}`, {
+            method: 'POST', // Laravel interprets _method='PUT'
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                showAlert(data.error, 'danger');
+            } else {
+                showAlert('Annonce mise à jour avec succès!', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('editAnnonceModal')).hide();
+                loadMesAnnonces().then(() => {
+                    loadAllAnnonces();
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error updating annonce:', error);
+            showAlert('Erreur lors de la mise à jour', 'danger');
+        });
+    });
+}
+
 });
 
 function setupCurrencySelector() {
@@ -320,35 +457,12 @@ function setupCurrencySelector() {
             // Recharge les deux listes avec la nouvelle devise
             Promise.all([
                 loadMesAnnonces(),
-                loadAllAnnoncesWithCurrency()
+                
             ]);
         });
     }
 }
-function loadAllAnnoncesWithCurrency() {
-    const search = document.getElementById('searchFilter').value;
-    const status = document.getElementById('statusFilter').value;
-    const query = new URLSearchParams();
-    if (search) query.append('search', search);
-    if (status) query.append('status', status);
-    query.append('to', selectedCurrency);
 
-    return fetch(`/annonces?${query.toString()}`, {
-        headers: {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': csrfToken
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayAllAnnonces(data.data || data);
-    })
-    .catch(error => {
-        console.error('Error loading all annonces with currency:', error);
-        showAlert('Erreur lors du chargement des annonces converties', 'danger');
-    });
-}
 
 function loadUserPostDechets() {
     console.log('Loading user post dechets...');
@@ -436,28 +550,41 @@ function displayMesAnnonces(annonces) {
     document.getElementById('emptyState').style.display = 'none';
 
     container.innerHTML = annonces.map(annonce => {
-        const isOwnAnnouncement = true; // mes annonces = always own
-        // Fix: Use snake_case 'converted_price' from API response
         const convertedPrice = annonce.converted_price ?? annonce.prix;
         const priceWithCurrency = `${Number(convertedPrice).toFixed(2)} ${getCurrencySymbol(selectedCurrency)}`;
+        const hasOrders = annonce.commandes && annonce.commandes.length > 0;
 
         return `
             <div class="col-lg-4 col-md-6 mb-4">
                 <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden hover-lift">
                     <div class="card-header bg-white border-0 p-3">
-                        <span class="badge bg-blue-100 text-blue-800 px-3 py-2 rounded-pill"><i class="bi bi-person me-1"></i>Votre annonce</span>
+                        <span class="badge bg-blue-100 text-blue-800 px-3 py-2 rounded-pill">
+                            <i class="bi bi-person me-1"></i>Votre annonce
+                        </span>
                     </div>
                     <div class="card-body p-4">
                         <h5 class="card-title fw-bold text-gray-800 mb-2">${annonce.post_dechet?.titre || 'Titre non disponible'}</h5>
-                        <p class="card-text text-gray-600 mb-3">${annonce.post_dechet?.description ? annonce.post_dechet.description.substring(0,100)+'...' : ''}</p>
+                        <p class="card-text text-gray-600 mb-3">
+                            ${annonce.post_dechet?.description ? annonce.post_dechet.description.substring(0,100)+'...' : ''}
+                        </p>
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <span class="h4 text-success mb-0 fw-bold">${priceWithCurrency}</span>
-                            <small class="text-gray-500 fw-semibold"><i class="bi bi-geo-alt me-1"></i>${annonce.post_dechet?.localisation || ''}</small>
+                            <small class="text-gray-500 fw-semibold">
+                                <i class="bi bi-geo-alt me-1"></i>${annonce.post_dechet?.localisation || ''}
+                            </small>
                         </div>
-                        <div class="d-grid">
-                            <button class="btn btn-outline-primary btn-sm rounded-2" onclick="editAnnonce(${annonce.id}, ${annonce.prix}, '${annonce.statut_annonce}')">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary btn-sm rounded-2 w-100" 
+                                onclick="editAnnonce(${annonce.id}, ${annonce.prix}, '${annonce.statut_annonce}')">
                                 <i class="bi bi-pencil-square me-1"></i>Modifier
                             </button>
+
+                            ${!hasOrders ? `
+                                <button class="btn btn-outline-danger btn-sm rounded-2 w-100" 
+                                    onclick="deleteAnnonce(${annonce.id})">
+                                    <i class="bi bi-trash3 me-1"></i>Supprimer
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
@@ -465,6 +592,7 @@ function displayMesAnnonces(annonces) {
         `;
     }).join('');
 }
+
 
 
 // <CHANGE> Nouvelle fonction pour obtenir le symbole de devise
