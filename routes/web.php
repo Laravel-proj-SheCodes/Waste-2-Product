@@ -8,6 +8,7 @@ use App\Http\Controllers\PropositionController;
 /** Auth */
 use App\Http\Controllers\AuthenticatedSessionController;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\ProfileController;
 
 /** Front waste-posts */
 use App\Http\Controllers\Front\PostDechetFrontController;
@@ -268,3 +269,27 @@ Route::resource('produit-transformes', ProduitTransformeController::class);
 
 
 Route::post('/eco-bot', [EcoBotGroqController::class, 'chat'])->name('eco-bot.chat');
+
+
+/** Mot de passe oublié / Réinitialisation */
+use App\Http\Controllers\ForgotPasswordController;
+use App\Http\Controllers\ResetPasswordController;
+
+// Formulaire "mot de passe oublié"
+Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+
+// Envoi de l'email de reset
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+
+// Formulaire de reset avec token
+Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
+
+// Soumission du nouveau mot de passe
+Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
+
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/update-password', [ProfileController::class, 'updatePassword'])->name('profile.updatePassword');
+});

@@ -163,7 +163,10 @@
                 <div class="small text-muted">{{ Auth::user()->email }}</div>
               </li>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="#">Manage profile</a></li>
+              <li> <a class="dropdown-item"
+                      href="{{ route('profile.show') }}">
+                     Manage Mon Profil
+                    </a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="/home/transactions-troc">Mes Transactions</a></li>
               <li>

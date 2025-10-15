@@ -73,7 +73,7 @@
                                         <label class="form-check-label" for="remember">Remember me</label>
                                     </div>
                                     {{-- Lien placeholder si tu ajoutes la réinitialisation plus tard --}}
-                                    <a class="small text-decoration-none" href="#">Forgot password?</a>
+                                        <a class="small text-decoration-none" href="{{ route('password.request') }}">Forgot password?</a>
                                 </div>
 
                                 <button type="submit" class="btn btn-success w-100 py-2">
