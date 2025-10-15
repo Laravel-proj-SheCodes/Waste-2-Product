@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Mail;
+use App\Mail\NouvelleOffreTrocMail;
 use App\Models\OffreTroc;
 use App\Models\PostDechet;
 use App\Models\TransactionTroc;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage; // Add this import
+use Illuminate\Support\Facades\Storage;
+
 class OffreTrocController extends Controller
 {
-    // Backoffice methods
+    /* ==================== BACKOFFICE ==================== */
+
     public function index()
     {
         $offres = OffreTroc::with('postDechet', 'user')->latest()->paginate(10);
@@ -28,25 +32,10 @@ class OffreTrocController extends Controller
 
     public function store(Request $request, $postId)
     {
-        $validated = $request->validate([
-            'categorie' => 'required|string',
-            'quantite' => 'required|integer|min:1',
-            'unite_mesure' => 'required|string',
-            'etat' => 'required|string',
-            'localisation' => 'required|string',
-            'photos' => 'nullable|array',
-            'photos.*' => 'image|max:2048',
-            'description' => 'required|string|max:500',
-        ]);
+        $validated = $this->validateOffer($request);
 
         $post = PostDechet::findOrFail($postId);
-
-        $files = [];
-        if ($request->hasFile('photos')) {
-            foreach ($request->file('photos') as $f) {
-                $files[] = $f->store('offres', 'public');
-            }
-        }
+        $files = $this->handleFiles($request);
 
         OffreTroc::create([
             'categorie' => $validated['categorie'],
@@ -68,11 +57,7 @@ class OffreTrocController extends Controller
     {
         $post = PostDechet::findOrFail($postId);
         $hasAcceptedOffer = OffreTroc::where('post_dechet_id', $postId)
-            ->where(function($query) {
-                $query->where('status', 'accepted')
-                    ->orWhere('status', 'Accepted')
-                    ->orWhere('status', 'ACCEPTED');
-            })
+            ->whereIn('status', ['accepted', 'Accepted', 'ACCEPTED'])
             ->exists();
 
         $offres = OffreTroc::where('post_dechet_id', $postId)
@@ -86,11 +71,8 @@ class OffreTrocController extends Controller
     public function edit($id)
     {
         $offre = OffreTroc::findOrFail($id);
-        if (Auth::id() !== $offre->user_id) {
-            return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier cette offre.');
-        }
-        if (strtolower($offre->status) === 'accepted') {
-            return redirect()->back()->with('error', 'Vous ne pouvez pas modifier une offre acceptée.');
+        if (!$this->canModify($offre)) {
+            return redirect()->back()->with('error', 'Vous ne pouvez pas modifier cette offre.');
         }
         return view('backoffice.pages.offres-troc.edit', compact('offre'));
     }
@@ -98,35 +80,12 @@ class OffreTrocController extends Controller
     public function update(Request $request, $id)
     {
         $offre = OffreTroc::findOrFail($id);
-        if (Auth::id() !== $offre->user_id) {
-            return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier cette offre.');
-        }
-        if (strtolower($offre->status) === 'accepted') {
-            return redirect()->back()->with('error', 'Vous ne pouvez pas modifier une offre acceptée.');
+        if (!$this->canModify($offre)) {
+            return redirect()->back()->with('error', 'Vous ne pouvez pas modifier cette offre.');
         }
 
-        $validated = $request->validate([
-            'categorie' => 'required|string',
-            'quantite' => 'required|integer|min:1',
-            'unite_mesure' => 'required|string',
-            'etat' => 'required|string',
-            'localisation' => 'required|string',
-            'photos' => 'nullable|array',
-            'photos.*' => 'image|max:2048',
-            'description' => 'required|string|max:500',
-        ]);
-
-        $files = $offre->photos ? json_decode($offre->photos, true) : [];
-        if ($request->hasFile('photos')) {
-            // Delete old photos
-            foreach ($files as $photo) {
-                Storage::disk('public')->delete($photo);
-            }
-            $files = [];
-            foreach ($request->file('photos') as $f) {
-                $files[] = $f->store('offres', 'public');
-            }
-        }
+        $validated = $this->validateOffer($request);
+        $files = $this->updateFiles($request, $offre);
 
         $offre->update([
             'categorie' => $validated['categorie'],
@@ -138,36 +97,29 @@ class OffreTrocController extends Controller
             'description' => $validated['description'],
         ]);
 
-        return redirect()->route('postdechets.offres', $offre->post_dechet_id)->with('success', 'Offre mise à jour avec succès');
+        return redirect()->route('postdechets.offres', $offre->post_dechet_id)
+            ->with('success', 'Offre mise à jour avec succès');
     }
 
     public function destroy($id)
     {
         $offre = OffreTroc::findOrFail($id);
-        if (Auth::id() !== $offre->user_id) {
-            return redirect()->route('offres-troc.index')->with('error', 'Vous n\'êtes pas autorisé à supprimer cette offre.');
-        }
-        if (strtolower($offre->status) === 'accepted') {
-            return redirect()->route('offres-troc.index')->with('error', 'Vous ne pouvez pas supprimer une offre acceptée.');
+        if (!$this->canModify($offre)) {
+            return redirect()->route('offres-troc.index')->with('error', 'Vous ne pouvez pas supprimer cette offre.');
         }
 
-        if ($offre->photos) {
-            foreach (json_decode($offre->photos, true) as $photo) {
-                Storage::disk('public')->delete($photo);
-            }
-        }
-
+        $this->deleteFiles($offre);
         $offre->delete();
+
         return redirect()->route('offres-troc.index')->with('success', 'Offre supprimée avec succès');
     }
 
     public function updateStatut(Request $request, $id)
     {
-        $validated = $request->validate([
-            'status' => 'required|in:accepted,rejected,en_attente',
-        ]);
+        $validated = $request->validate(['status' => 'required|in:accepted,rejected,en_attente']);
 
         $offre = OffreTroc::findOrFail($id);
+
         if ($validated['status'] === 'accepted') {
             OffreTroc::where('post_dechet_id', $offre->post_dechet_id)
                 ->where('id', '!=', $id)
@@ -189,30 +141,8 @@ class OffreTrocController extends Controller
         return redirect()->back()->with('success', 'Statut mis à jour');
     }
 
-    public function destroyPhoto(Request $request, $postId, OffreTroc $offre, $index)
-    {
-        if (Auth::id() !== $offre->user_id) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
+    /* ==================== FRONT OFFICE ==================== */
 
-        if ($offre->post_dechet_id != $postId) {
-            return response()->json(['success' => false, 'message' => 'Invalid post ID'], 400);
-        }
-
-        if (strtolower($offre->status) === 'accepted') {
-            return response()->json(['success' => false, 'message' => 'Vous ne pouvez pas supprimer une photo d\'une offre acceptée'], 403);
-        }
-
-        $photos = $offre->photos ? json_decode($offre->photos, true) : [];
-        if (isset($photos[$index])) {
-            Storage::disk('public')->delete($photos[$index]);
-            unset($photos[$index]);
-            $offre->update(['photos' => !empty($photos) ? json_encode(array_values($photos)) : null]);
-            return response()->json(['success' => true]);
-        }
-        return response()->json(['success' => false, 'message' => 'Photo non trouvée'], 404);
-    }
-    /* Front ***** */
     public function indexFront()
     {
         $offres = OffreTroc::with('postDechet', 'user')->latest()->paginate(10);
@@ -229,68 +159,50 @@ class OffreTrocController extends Controller
     }
 
     public function storeFront(Request $request, $postId)
-    {
-        if (!Auth::check()) {
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json(['error' => 'Authentification requise'], 401);
-            }
-            return redirect()->route('login')->with('error', 'Authentification requise');
-        }
-
-        $validated = $request->validate([
-            'categorie' => 'required|string',
-            'quantite' => 'required|integer|min:1',
-            'unite_mesure' => 'required|string',
-            'etat' => 'required|string',
-            'localisation' => 'required|string',
-            'photos' => 'nullable|array',
-            'photos.*' => 'image|max:2048',
-            'description' => 'required|string|max:500',
-        ]);
-
-        $post = PostDechet::findOrFail($postId);
-
-        $files = [];
-        if ($request->hasFile('photos')) {
-            foreach ($request->file('photos') as $f) {
-                $files[] = $f->store('offres', 'public');
-            }
-        }
-
-        $offre = OffreTroc::create([
-            'categorie' => $validated['categorie'],
-            'quantite' => $validated['quantite'],
-            'unite_mesure' => $validated['unite_mesure'],
-            'etat' => $validated['etat'],
-            'localisation' => $validated['localisation'],
-            'photos' => !empty($files) ? json_encode($files) : null,
-            'description' => $validated['description'],
-            'user_id' => Auth::id(),
-            'post_dechet_id' => $postId,
-            'status' => 'en_attente',
-        ]);
-
-        if ($request->wantsJson() || $request->ajax()) {
-            return response()->json($offre->load('user', 'post'), 201);
-        }
-
-        if ($request->input('from_front')) {
-            return redirect()->route('offres-troc.thankyou')->with('success', 'Offre créée avec succès !');
-        }
-
-        return redirect()->route('offres-troc.index.front')->with('success', 'Offre créée avec succès !');
+{
+    if (!Auth::check()) {
+        return $request->wantsJson()
+            ? response()->json(['error' => 'Authentification requise'], 401)
+            : redirect()->route('login')->with('error', 'Authentification requise');
     }
+
+    $validated = $this->validateOffer($request);
+    $files = $this->handleFiles($request);
+
+    $offre = OffreTroc::create([
+        'categorie' => $validated['categorie'],
+        'quantite' => $validated['quantite'],
+        'unite_mesure' => $validated['unite_mesure'],
+        'etat' => $validated['etat'],
+        'localisation' => $validated['localisation'],
+        'photos' => !empty($files) ? json_encode($files) : null,
+        'description' => $validated['description'],
+        'user_id' => Auth::id(),
+        'post_dechet_id' => $postId,
+        'status' => 'en_attente',
+    ]);
+
+    // ===== LOGIQUE D'ENVOI D'EMAIL =====
+    $post = PostDechet::findOrFail($postId);
+    $owner = $post->user; // Assure-toi que la relation user est définie dans PostDechet
+    if ($owner && $owner->email) {
+        Mail::to($owner->email)->send(new NouvelleOffreTrocMail($offre));
+    }
+
+    if ($request->wantsJson()) {
+        return response()->json($offre->load('user', 'postDechet'), 201);
+    }
+
+    $route = $request->input('from_front') ? 'offres-troc.thankyou' : 'offres-troc.index.front';
+    return redirect()->route($route)->with('success', 'Offre créée avec succès !');
+}
+
 
     public function showFront($postId)
     {
         $post = PostDechet::findOrFail($postId);
-        
         $hasAcceptedOffer = OffreTroc::where('post_dechet_id', $postId)
-            ->where(function($query) {
-                $query->where('status', 'accepted')
-                    ->orWhere('status', 'Accepted')
-                    ->orWhere('status', 'ACCEPTED');
-            })
+            ->whereIn('status', ['accepted', 'Accepted', 'ACCEPTED'])
             ->exists();
 
         $offres = OffreTroc::where('post_dechet_id', $postId)
@@ -304,52 +216,21 @@ class OffreTrocController extends Controller
     public function editFront($id)
     {
         $offre = OffreTroc::findOrFail($id);
-
-        if (Auth::id() !== $offre->user_id) {
-            return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier cette offre.');
+        if (!$this->canModify($offre)) {
+            return redirect()->back()->with('error', 'Vous ne pouvez pas modifier cette offre.');
         }
-
-        if (strtolower($offre->status) === 'accepted') {
-            return redirect()->back()->with('error', 'Vous ne pouvez pas modifier une offre acceptée.');
-        }
-
         return view('frontoffice.pages.offres-troc.edit', compact('offre'));
     }
 
     public function updateFront(Request $request, $id)
     {
         $offre = OffreTroc::findOrFail($id);
-
-        if (Auth::id() !== $offre->user_id) {
-            return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier cette offre.');
+        if (!$this->canModify($offre)) {
+            return redirect()->back()->with('error', 'Vous ne pouvez pas modifier cette offre.');
         }
 
-        if (strtolower($offre->status) === 'accepted') {
-            return redirect()->back()->with('error', 'Vous ne pouvez pas modifier une offre acceptée.');
-        }
-
-        $validated = $request->validate([
-            'categorie' => 'required|string',
-            'quantite' => 'required|integer|min:1',
-            'unite_mesure' => 'required|string',
-            'etat' => 'required|string',
-            'localisation' => 'required|string',
-            'description' => 'required|string|max:500',
-            'photos' => 'nullable|array',
-            'photos.*' => 'image|max:2048',
-        ]);
-
-        $files = $offre->photos ? json_decode($offre->photos, true) : [];
-        if ($request->hasFile('photos')) {
-            // Delete old photos
-            foreach ($files as $photo) {
-                Storage::delete('public/' . $photo);
-            }
-            $files = [];
-            foreach ($request->file('photos') as $f) {
-                $files[] = $f->store('offres', 'public');
-            }
-        }
+        $validated = $this->validateOffer($request, true); // true = front, photos nullable
+        $files = $this->updateFiles($request, $offre);
 
         $offre->update([
             'categorie' => $validated['categorie'],
@@ -361,64 +242,82 @@ class OffreTrocController extends Controller
             'description' => $validated['description'],
         ]);
 
-        return redirect()->route('postdechets.offres.front', $offre->post_dechet_id)->with('success', 'Offre mise à jour avec succès');
+        return redirect()->route('postdechets.offres.front', $offre->post_dechet_id)
+            ->with('success', 'Offre mise à jour avec succès');
     }
 
-public function destroyFront($id)
+    public function destroyFront($id)
     {
         $offre = OffreTroc::findOrFail($id);
-
-        if (Auth::id() !== $offre->user_id) {
+        if (!$this->canModify($offre)) {
             return redirect()->route('postdechets.offres.front', $offre->post_dechet_id)
-                ->with('error', 'Vous n\'êtes pas autorisé à supprimer cette offre.');
+                ->with('error', 'Vous ne pouvez pas supprimer cette offre.');
         }
 
-        if (strtolower($offre->status) === 'accepted') {
-            return redirect()->route('postdechets.offres.front', $offre->post_dechet_id)
-                ->with('error', 'Vous ne pouvez pas supprimer une offre acceptée.');
-        }
-
-        // Delete associated photos
-        if ($offre->photos) {
-            foreach (json_decode($offre->photos, true) as $photo) {
-                Storage::disk('public')->delete($photo); // Error here if Storage is not imported
-            }
-        }
-
+        $this->deleteFiles($offre);
         $offre->delete();
 
         return redirect()->route('postdechets.offres.front', $offre->post_dechet_id)
             ->with('success', 'Offre supprimée avec succès.');
     }
-    
+
     public function updateStatutFront(Request $request, $id)
     {
-        $validated = $request->validate([
-            'status' => 'required|in:accepted,rejected,en_attente',
-        ]);
-
-        $offre = OffreTroc::findOrFail($id);
-        
-        if ($validated['status'] === 'accepted') {
-            OffreTroc::where('post_dechet_id', $offre->post_dechet_id)
-                ->where('id', '!=', $id)
-                ->update(['status' => 'rejected']);
-        }
-
-        $oldStatus = $offre->status;
-        $offre->update(['status' => $validated['status']]);
-
-        if ($validated['status'] === 'accepted' && $oldStatus !== 'accepted') {
-            TransactionTroc::create([
-                'offre_troc_id' => $id,
-                'utilisateur_acceptant_id' => $offre->postDechet->user_id,
-                'date_accord' => now(),
-                'statut_livraison' => 'en_cours',
-            ]);
-        }
-
-        return redirect()->back()->with('success', 'Statut mis à jour');
+        return $this->updateStatut($request, $id);
     }
 
-    
+    /* ==================== HELPER FUNCTIONS ==================== */
+
+    private function validateOffer(Request $request, $front = false)
+    {
+        $rules = [
+            'categorie' => 'required|string',
+            'quantite' => 'required|integer|min:1',
+            'unite_mesure' => 'required|string',
+            'etat' => 'required|string',
+            'localisation' => 'required|string',
+            'description' => 'required|string|max:500',
+            'photos' => 'nullable|array',
+            'photos.*' => 'image|max:2048',
+        ];
+
+        return $request->validate($rules);
+    }
+
+    private function handleFiles(Request $request)
+    {
+        $files = [];
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $file) {
+                $files[] = $file->store('offres', 'public');
+            }
+        }
+        return $files;
+    }
+
+    private function updateFiles(Request $request, OffreTroc $offre)
+    {
+        $files = $offre->photos ? json_decode($offre->photos, true) : [];
+        if ($request->hasFile('photos')) {
+            foreach ($files as $photo) {
+                Storage::disk('public')->delete($photo);
+            }
+            $files = $this->handleFiles($request);
+        }
+        return $files;
+    }
+
+    private function deleteFiles(OffreTroc $offre)
+    {
+        if ($offre->photos) {
+            foreach (json_decode($offre->photos, true) as $photo) {
+                Storage::disk('public')->delete($photo);
+            }
+        }
+    }
+
+    private function canModify(OffreTroc $offre)
+    {
+        return Auth::id() === $offre->user_id && strtolower($offre->status) !== 'accepted';
+    }
 }
