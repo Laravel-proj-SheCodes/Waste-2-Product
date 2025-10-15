@@ -10,6 +10,7 @@
         "guzzlehttp/guzzle": "^7.10",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
+        "lucianotonet/groq-laravel": "^1.0",
         "lucianotonet/groq-php": "^1.3"
     },
     "require-dev": {
