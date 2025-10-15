@@ -199,12 +199,12 @@
 
                       @php
                         $badgeClass = $prop->statut === 'accepte' ? 'bg-success'
-                                     : ($prop->statut === 'refusee' ? 'bg-danger' : 'bg-secondary');
+                                     : ($prop->statut === 'refuse' ? 'bg-danger' : 'bg-secondary');
 
                         $labelMap = [
                           'en_attente' => 'en attente',
                           'accepte'    => 'acceptée',
-                          'refusee'    => 'refusée',
+                           'refuse'     => 'refusée',   //
                         ];
                         $label = $labelMap[$prop->statut ?? 'en_attente'];
                       @endphp

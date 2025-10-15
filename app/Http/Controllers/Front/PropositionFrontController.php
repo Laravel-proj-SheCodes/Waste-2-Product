@@ -133,8 +133,8 @@ public function accept(Proposition $proposition)
         // 2) Refuser toutes les autres propositions du même post
         Proposition::where('post_dechet_id', $proposition->post_dechet_id)
             ->where('id', '!=', $proposition->id)
-            ->where('statut', '!=', 'refusee')
-            ->update(['statut' => 'refusee']);
+            ->where('statut', '!=', 'refuse')
+            ->update(['statut' => 'refuse']);
 
         // 3) Notifier l’auteur de la proposition acceptée
         $proposition->loadMissing('postDechet', 'user');
@@ -159,8 +159,8 @@ public function reject(Proposition $proposition)
     abort_unless($proposition->postDechet?->user_id === Auth::id(), 403);
 
     // si ta BDD a 'refusee', laisse 'refusee'. Si elle a 'refuse', mets 'refuse'.
-    if ($proposition->statut !== 'refusee') {
-        $proposition->update(['statut' => 'refusee']);
+    if ($proposition->statut !== 'refuse') {
+        $proposition->update(['statut' => 'refuse']);
     }
 
     $url = route('front.waste-posts.show', $proposition->post_dechet_id)
