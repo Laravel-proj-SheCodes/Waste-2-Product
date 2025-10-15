@@ -25,6 +25,7 @@ use App\Http\Controllers\DonationController;
 
 use App\Http\Controllers\Front\PropositionFrontController;
 
+use App\Http\Controllers\EcoBotGroqController;
 
 /* =========================
  |  Pages simples
@@ -43,13 +44,13 @@ Route::resource('propositions', PropositionController::class);
 
 
 // Proposals (transformator)
-Route::resource('proposition-transformations', PropositionTransformationController::class);
+//Route::resource('proposition-transformations', PropositionTransformationController::class);
 
 // Processes
-Route::resource('processus-transformations', ProcessusTransformationController::class);
+//Route::resource('processus-transformations', ProcessusTransformationController::class);
 
 // Products
-Route::resource('produit-transformes', ProduitTransformeController::class);
+//Route::resource('produit-transformes', ProduitTransformeController::class);
 
 /* =========================
  |  Authentification
@@ -245,3 +246,5 @@ Route::resource('processus-transformations', ProcessusTransformationController::
 // Products
 Route::resource('produit-transformes', ProduitTransformeController::class);
 
+
+Route::post('/eco-bot', [EcoBotGroqController::class, 'chat'])->name('eco-bot.chat');
