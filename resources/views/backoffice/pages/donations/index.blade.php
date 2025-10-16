@@ -136,8 +136,8 @@
                                 <div class="col-md-3">
     <select name="type" class="form-select">
         <option value="all" {{ request('type') === 'all' || !request('type') ? 'selected' : '' }}>All Types</option>
-        <option value="recyclable" {{ request('type') === 'recyclable' ? 'selected' : '' }}>Recyclable</option>
-        <option value="renewable" {{ request('type') === 'renewable' ? 'selected' : '' }}>Renewable</option>
+        <option value="recyclable" {{ request('type') === 'recyclable' ? 'selected' : '' }}>♻️ Recyclable donations</option>
+        <option value="renewable" {{ request('type') === 'renewable' ? 'selected' : '' }}>🌿 Renewable donations</option>
     </select>
 </div>
 
