@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 /** Backoffice contrôleurs existants */
 use App\Http\Controllers\PostDechetController;
 use App\Http\Controllers\PropositionController;
+use App\Http\Controllers\UserController;
+
 
 /** Auth */
 use App\Http\Controllers\AuthenticatedSessionController;
@@ -46,6 +48,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::resource('postdechets', PostDechetController::class);
     Route::resource('propositions', PropositionController::class);
+    Route::resource('users', UserController::class)->only(['index', 'show']);
+    Route::post('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('users.toggleActive');
 
     // Proposals (transformator)
     //Route::resource('proposition-transformations', PropositionTransformationController::class);
