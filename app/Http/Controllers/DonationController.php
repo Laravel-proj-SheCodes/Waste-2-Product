@@ -17,19 +17,47 @@ class DonationController extends Controller
     /**
      * Display a listing of donations.
      */
-    public function index(Request $request)
+   public function index(Request $request)
     {
-        $donations = Donation::with('user')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        
 
-        $stats = [
-            'total' => Donation::count(),
-            'pending' => Donation::where('status', 'pending')->count(),
-            'accepted' => Donation::where('status', 'accepted')->count(),
-            'rejected' => Donation::where('status', 'rejected')->count(),
-            'taken' => Donation::where('status', 'taken')->count(),
-        ];
+        $query = Donation::with('user')->orderBy('created_at', 'desc');
+
+        // Apply search filter
+        if ($request->filled('search')) {
+            $query->where('product_name', 'like', '%' . $request->input('search') . '%');
+            Log::info('Applying search filter for donations index', [
+                'search' => $request->input('search'),
+            ]);
+        }
+
+        // Apply type filter
+        if ($request->filled('type') && strtolower($request->input('type')) !== 'all') {
+    $type = strtolower(trim($request->input('type')));
+
+    // Normalize common variations or typos
+    if (in_array($type, ['recucable', 'recycle', 'recyclable'])) {
+        $type = 'recyclable';
+    } elseif (in_array($type, ['renewable', 'renouvelable'])) {
+        $type = 'renewable';
+    }
+
+    $query->whereRaw('LOWER(type) = ?', [$type]);
+}
+
+
+        $donations = $query->paginate(10);
+
+        // Calculate stats based on filtered query
+        // Calculate stats based on filtered query
+$stats = [
+    'total' => (clone $query)->count(),
+    'pending' => (clone $query)->where('status', 'pending')->count(),
+    'accepted' => (clone $query)->where('status', 'accepted')->count(),
+    'rejected' => (clone $query)->where('status', 'rejected')->count(),
+    'taken' => (clone $query)->where('status', 'taken')->count(),
+];
+
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
@@ -40,6 +68,7 @@ class DonationController extends Controller
 
         return view('backoffice.pages.donations.index', compact('donations', 'stats'));
     }
+
 
     /**
      * Show the form for creating a new donation.

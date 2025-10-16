@@ -27,7 +27,7 @@ class UpdateDonationRequest extends FormRequest
             'quantity' => 'sometimes|integer|min:1|max:10000',
             'type' => 'sometimes|in:recyclable,renewable',
             'donation_date' => 'sometimes|date',
-            'description' => 'nullable|string|max:1000',
+            'description' => 'nullable|string|max:30000',
             'status' => 'sometimes|in:pending,accepted,rejected,taken',
         ];
     }
@@ -45,7 +45,7 @@ class UpdateDonationRequest extends FormRequest
             'quantity.max' => 'The quantity must not exceed 10,000.',
             'type.in' => 'The donation type must be either recyclable or renewable.',
             'donation_date.date' => 'The donation date must be a valid date.',
-            'description.max' => 'The description must not exceed 1000 characters.',
+            'description.max' => 'The description must not exceed 30000 characters.',
             'status.in' => 'The status must be one of: pending, accepted, rejected, or taken.',
         ];
     }

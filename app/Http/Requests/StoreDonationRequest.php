@@ -26,7 +26,7 @@ class StoreDonationRequest extends FormRequest
             'quantity' => 'required|integer|min:1|max:10000',
             'type' => 'required|in:recyclable,renewable',
             'donation_date' => 'required|date|after_or_equal:today',
-            'description' => 'nullable|string|max:1000',
+            'description' => 'nullable|string|max:30000',
         ];
     }
 
@@ -49,7 +49,7 @@ class StoreDonationRequest extends FormRequest
             'donation_date.required' => 'The donation date is required.',
             'donation_date.date' => 'The donation date must be a valid date.',
             'donation_date.after_or_equal' => 'The donation date cannot be in the past.',
-            'description.max' => 'The description must not exceed 1000 characters.',
+            'description.max' => 'The description must not exceed 30000 characters.',
         ];
     }
 
