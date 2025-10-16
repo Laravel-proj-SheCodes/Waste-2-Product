@@ -27,7 +27,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <p class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 mb-1">Price</p>
-                            <h6 class="mb-0">{{ number_format($annonce->prix, 2) }} DH</h6>
+                            <h6 class="mb-0">{{ number_format($annonce->prix, 2) }} €</h6>
                         </div>
                         <div class="col-md-6 mb-3">
                             <p class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 mb-1">Quantity</p>
@@ -103,7 +103,7 @@
                                             <span class="text-secondary text-xs font-weight-bold">{{ $commande->quantite }}</span>
                                         </td>
                                         <td class="align-middle text-center">
-                                            <span class="text-secondary text-xs font-weight-bold">{{ number_format($commande->prix_total, 2) }} DH</span>
+                                            <span class="text-secondary text-xs font-weight-bold">{{ number_format($commande->prix_total, 2) }} €</span>
                                         </td>
                                         <td class="align-middle text-center text-sm">
                                             @php

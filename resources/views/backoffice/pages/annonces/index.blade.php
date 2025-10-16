@@ -69,8 +69,7 @@
                         <div>
                             <p class="text-sm mb-0 text-uppercase font-weight-bold text-secondary">Total Revenue</p>
                             <h5 class="font-weight-bolder text-warning mb-0">
-                                {{ number_format($stats['revenue'], 2) }} DH
-                            </h5>
+                                {{ number_format($stats['revenue'], 2) }} €
                         </div>
                         <div class="icon icon-shape bg-gradient-warning text-center rounded-circle shadow">
                             <i class="material-symbols-rounded text-white">payments</i>
@@ -234,7 +233,7 @@
                                             <span class="badge badge-sm {{ $badgeClass }}">{{ $badgeText }}</span>
                                         </td>
                                         <td class="align-middle text-center">
-                                            <span class="text-secondary text-xs font-weight-bold">{{ number_format($annonce->prix, 2) }} DH</span>
+                                            <span class="text-secondary text-xs font-weight-bold">{{ number_format($annonce->prix, 2) }} €</span>
                                         </td>
                                         <td class="align-middle text-center">
                                             <span class="text-secondary text-xs font-weight-bold">{{ $annonce->created_at->format('d/m/Y') }}</span>
