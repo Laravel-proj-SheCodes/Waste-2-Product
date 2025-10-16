@@ -20,7 +20,7 @@
 
     <p>
         Vous pouvez consulter le post ici :
-        <a href="{{ url('/posts/' . $offre->post_dechet_id) }}">
+        <a href="{{ url('/waste-posts/' . $offre->post_dechet_id) }}">
             Voir le post
         </a>
     </p>

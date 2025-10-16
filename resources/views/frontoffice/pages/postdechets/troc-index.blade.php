@@ -148,12 +148,13 @@
               @auth
                 @if(auth()->id() === $post->user_id)
                   <a class="btn btn-outline-secondary btn-sm" href="{{ route('postdechets.edit', $post->id) }}">Modifier</a>
-                @endif
+                  <a class="btn btn-outline-purple btn-sm" href="{{ route('offres-troc.show.front', $post->id) }}">Voir Offres</a>
+
+                  @endif
                 @if(auth()->id() !== $post->user_id && !$hasAcceptedOffer)
                   <a class="btn btn-outline-primary btn-sm" href="{{ route('offres-troc.create.front', $post->id) }}">Proposer une Offre</a>
                 @endif
               @endauth
-              <a class="btn btn-outline-purple btn-sm" href="{{ route('offres-troc.show.front', $post->id) }}">Voir Offres</a>
             </div>
           </div>
         </div>

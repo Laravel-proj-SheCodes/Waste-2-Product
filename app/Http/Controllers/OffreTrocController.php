@@ -261,10 +261,58 @@ class OffreTrocController extends Controller
             ->with('success', 'Offre supprimée avec succès.');
     }
 
-    public function updateStatutFront(Request $request, $id)
-    {
-        return $this->updateStatut($request, $id);
+   public function updateStatutFront(Request $request, $id)
+{
+    $validated = $request->validate(['status' => 'required|in:accepted,rejected,en_attente']);
+    $offre = OffreTroc::findOrFail($id);
+    $post = $offre->postDechet;
+
+    if ($validated['status'] === 'accepted') {
+
+        // Rejeter les autres offres
+        $otherOffres = OffreTroc::where('post_dechet_id', $post->id)
+            ->where('id', '!=', $id)
+            ->get();
+
+        foreach ($otherOffres as $o) {
+            $o->update(['status' => 'rejected']);
+
+            if ($o->user && $o->user->email) {
+                \Mail::to($o->user->email)->send(new \App\Mail\OffreStatusMail($o, $post, 'rejected'));
+            }
+        }
+
+        // Mettre à jour l'offre acceptée
+        $oldStatus = $offre->status;
+        $offre->update(['status' => 'accepted']);
+
+        // Créer la transaction si ce n'était pas déjà accepté
+        if ($oldStatus !== 'accepted') {
+            TransactionTroc::create([
+                'offre_troc_id' => $offre->id,
+                'utilisateur_acceptant_id' => $post->user_id,
+                'date_accord' => now(),
+                'statut_livraison' => 'en_cours',
+            ]);
+        }
+
+        // Envoyer email d'acceptation
+        if ($offre->user && $offre->user->email) {
+            \Mail::to($offre->user->email)->send(new \App\Mail\OffreStatusMail($offre, $post, 'accepted'));
+        }
+
+    } else {
+        // Offre rejetée ou en attente
+        $offre->update(['status' => $validated['status']]);
+
+        if ($offre->user && $offre->user->email) {
+            \Mail::to($offre->user->email)->send(new \App\Mail\OffreStatusMail($offre, $post, $validated['status']));
+        }
     }
+
+    return redirect()->back()->with('success', 'Statut mis à jour et emails envoyés.');
+}
+
 
     /* ==================== HELPER FUNCTIONS ==================== */
 
