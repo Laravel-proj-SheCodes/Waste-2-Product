@@ -2,6 +2,174 @@
 
 @section('content')
 <div class="container-fluid py-4">
+    {{-- Stat Cards --}}
+    <div class="row mb-4">
+        {{-- Total Announcements --}}
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="text-sm mb-0 text-uppercase font-weight-bold text-secondary">Total Announcements</p>
+                            <h5 class="font-weight-bolder text-dark mb-0">
+                                {{ $stats['total'] }}
+                            </h5>
+                        </div>
+                        <div class="icon icon-shape bg-gradient-primary text-center rounded-circle shadow">
+                            <i class="material-symbols-rounded text-white">storefront</i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Active --}}
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="text-sm mb-0 text-uppercase font-weight-bold text-secondary">Active</p>
+                            <h5 class="font-weight-bolder text-success mb-0">
+                                {{ $stats['active'] }}
+                            </h5>
+                        </div>
+                        <div class="icon icon-shape bg-gradient-success text-center rounded-circle shadow">
+                            <i class="material-symbols-rounded text-white">check_circle</i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Sold --}}
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="text-sm mb-0 text-uppercase font-weight-bold text-secondary">Sold</p>
+                            <h5 class="font-weight-bolder text-info mb-0">
+                                {{ $stats['vendue'] }}
+                            </h5>
+                        </div>
+                        <div class="icon icon-shape bg-gradient-info text-center rounded-circle shadow">
+                            <i class="material-symbols-rounded text-white">shopping_cart</i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Total Revenue --}}
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="text-sm mb-0 text-uppercase font-weight-bold text-secondary">Total Revenue</p>
+                            <h5 class="font-weight-bolder text-warning mb-0">
+                                {{ number_format($stats['revenue'], 2) }} DH
+                            </h5>
+                        </div>
+                        <div class="icon icon-shape bg-gradient-warning text-center rounded-circle shadow">
+                            <i class="material-symbols-rounded text-white">payments</i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+{{-- Compact Search and Filter Section --}}
+{{-- Enhanced Search and Filter Section with Material Dashboard 3 Styling --}}
+<div class="card shadow-lg border-0 mb-4">
+    
+
+    <div class="card-body px-4 py-4">
+        <form method="GET" action="{{ route('annonces.index') }}" id="filterForm">
+            <div class="row align-items-end g-3">
+
+                {{-- Search --}}
+                <div class="col-lg-3 col-md-4 col-sm-6">
+                    <label class="form-label text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 mb-2">Search</label>
+                    <div class="input-group input-group-outline">
+                        <input type="text"
+                            class="form-control"
+                            name="search"
+                            placeholder="Search announcements..."
+                            value="{{ request('search') }}">
+                    </div>
+                </div>
+
+                {{-- Status --}}
+                <div class="col-lg-2 col-md-3 col-sm-6">
+                    <label class="form-label text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 mb-2">Status</label>
+                    <select class="form-select form-control" name="status">
+                        <option value="all" {{ request('status') == 'all' ? 'selected' : '' }}>All</option>
+                        <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
+                        <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                        <option value="vendue" {{ request('status') == 'vendue' ? 'selected' : '' }}>Sold</option>
+                        <option value="expiree" {{ request('status') == 'expiree' ? 'selected' : '' }}>Expired</option>
+                    </select>
+                </div>
+
+                {{-- Price Range --}}
+                <div class="col-lg-2 col-md-3 col-sm-6">
+                    <label class="form-label text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 mb-2">Price</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="number"
+                            class="form-control form-control-sm"
+                            name="min_price"
+                            placeholder="Min"
+                            value="{{ request('min_price') }}">
+                        <span class="text-secondary text-xs font-weight-bold">–</span>
+                        <input type="number"
+                            class="form-control form-control-sm"
+                            name="max_price"
+                            placeholder="Max"
+                            value="{{ request('max_price') }}">
+                    </div>
+                </div>
+
+                {{-- Sort By --}}
+                <div class="col-lg-2 col-md-3 col-sm-6">
+                    <label class="form-label text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 mb-2">Sort By</label>
+                    <select class="form-select form-control" name="sort_by">
+                        <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>Date</option>
+                        <option value="prix" {{ request('sort_by') == 'prix' ? 'selected' : '' }}>Price</option>
+                        <option value="statut_annonce" {{ request('sort_by') == 'statut_annonce' ? 'selected' : '' }}>Status</option>
+                    </select>
+                </div>
+
+                {{-- Sort Order --}}
+                <div class="col-lg-1 col-md-2 col-sm-6">
+                    <label class="form-label text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 mb-2">Order</label>
+                    <select class="form-select form-control" name="sort_order">
+                        <option value="desc" {{ request('sort_order') == 'desc' ? 'selected' : '' }}>Desc</option>
+                        <option value="asc" {{ request('sort_order') == 'asc' ? 'selected' : '' }}>Asc</option>
+                    </select>
+                </div>
+
+                {{-- Buttons --}}
+                <div class="col-lg-2 col-md-3 col-sm-12 d-flex gap-2 justify-content-end">
+                    <button type="submit" class="btn bg-gradient-dark text-white mb-0 font-weight-bold w-100">
+                        <i class="material-symbols-rounded me-1" style="font-size: 16px;">filter_alt</i>
+                       
+                    </button>
+                    <a href="{{ route('annonces.index') }}" class="btn btn-outline-secondary mb-0 font-weight-bold">
+                        <i class="material-symbols-rounded" style="font-size: 16px;">refresh</i>
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+
+    {{-- Announcements Table --}}
     <div class="row">
         <div class="col-12">
             <div class="card my-4">
