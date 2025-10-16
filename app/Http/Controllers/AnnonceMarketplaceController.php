@@ -17,9 +17,56 @@ class AnnonceMarketplaceController extends Controller
      */
     public function index(Request $request)
     {
-        $annonces = AnnonceMarketplace::with(['postDechet.user'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $query = AnnonceMarketplace::with(['postDechet.user']);
+
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->whereHas('postDechet', function($subQuery) use ($search) {
+                    $subQuery->where('titre', 'like', "%{$search}%")
+                             ->orWhere('description', 'like', "%{$search}%");
+                })
+                ->orWhereHas('postDechet.user', function($subQuery) use ($search) {
+                    $subQuery->where('name', 'like', "%{$search}%")
+                             ->orWhere('email', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        // Filter by status
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('statut_annonce', $request->status);
+        }
+
+        // Filter by price range
+        if ($request->filled('min_price')) {
+            $query->where('prix', '>=', $request->min_price);
+        }
+        if ($request->filled('max_price')) {
+            $query->where('prix', '<=', $request->max_price);
+        }
+
+        // Filter by date range
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // Sorting
+        $sortField = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+        
+        $allowedSortFields = ['created_at', 'prix', 'statut_annonce'];
+        if (in_array($sortField, $allowedSortFields)) {
+            $query->orderBy($sortField, $sortOrder);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $annonces = $query->paginate(10)->withQueryString();
 
         $stats = [
             'total' => AnnonceMarketplace::count(),
