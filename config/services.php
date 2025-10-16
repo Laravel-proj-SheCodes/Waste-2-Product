@@ -6,6 +6,10 @@ return [
         'api_key' => env('GROQ_API_KEY'),
     ],
 
+    'huggingface' => [
+        'token' => env('HUGGINGFACE_TOKEN'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

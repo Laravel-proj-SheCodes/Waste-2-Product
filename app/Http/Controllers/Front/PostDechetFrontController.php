@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-$token = env('HUGGINGFACE_TOKEN');
 
 class PostDechetFrontController extends Controller
 {
@@ -29,7 +28,7 @@ public function analyze(Request $request)
     $file = $request->file('photo');
     $path = $file->store('analyze', 'public');
 
-    $token = env('HUGGINGFACE_TOKEN');
+    $token = env('HUGGINGFACE');
     $imageData = base64_encode(file_get_contents($file->getRealPath()));
 
     try {
@@ -89,7 +88,6 @@ public function analyze(Request $request)
         return response()->json(['error' => 'Erreur API : ' . $e->getMessage()]);
     }
 }
-
 
     // Liste publique
     public function index()

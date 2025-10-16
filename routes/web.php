@@ -293,3 +293,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/update-password', [ProfileController::class, 'updatePassword'])->name('profile.updatePassword');
 });
+
+
+
+Route::get('/test-token', function () {
+    return env('HUGGINGFACE_TOKEN') ? 'Token OK' : 'Token vide';
+});
+Route::get('/test-path', function () {
+    return base_path('.env');
+});
