@@ -15,7 +15,8 @@ class ProfileController extends Controller
     public function show()
     {
         $user = Auth::user();
-        return view('frontoffice.profile.show', compact('user'));
+        $showWelcomeBack = session('welcome_back', false);
+        return view('frontoffice.profile.show', compact('user', 'showWelcomeBack'));
     }
 
     /**
@@ -54,5 +55,14 @@ class ProfileController extends Controller
         $user->update(['password' => Hash::make($request->password)]);
 
         return back()->with('success', 'Mot de passe mis à jour avec succès.');
+    }
+    public function deactivate(Request $request)
+    {
+        $user = Auth::user();
+        $user->update(['is_active' => false]);
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect()->route('login')->with('success', 'Votre compte a été désactivé.');
     }
 }

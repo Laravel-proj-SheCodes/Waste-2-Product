@@ -8,6 +8,10 @@
         <div class="alert alert-success rounded-3">{{ session('success') }}</div>
     @endif
 
+    @if($showWelcomeBack)
+        <div class="alert alert-info rounded-3">Bienvenue de retour ! Votre compte a été réactivé.</div>
+    @endif
+
     {{-- Formulaire infos personnelles --}}
     <div class="card mb-4 shadow-sm rounded-4">
         <div class="card-body">
@@ -20,21 +24,19 @@
                            class="form-control @error('name') is-invalid @enderror">
                     @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
-
                 <div class="mb-3">
                     <label class="form-label">Adresse email</label>
                     <input type="email" name="email" value="{{ old('email', $user->email) }}"
                            class="form-control @error('email') is-invalid @enderror">
                     @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
-
                 <button type="submit" class="btn btn-success w-100">Mettre à jour</button>
             </form>
         </div>
     </div>
 
     {{-- Formulaire mot de passe --}}
-    <div class="card shadow-sm rounded-4">
+    <div class="card mb-4 shadow-sm rounded-4">
         <div class="card-body">
             <h5 class="fw-bold mb-3">Modifier le mot de passe</h5>
             <form action="{{ route('profile.updatePassword') }}" method="POST">
@@ -45,20 +47,30 @@
                            class="form-control @error('current_password') is-invalid @enderror">
                     @error('current_password') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
-
                 <div class="mb-3">
                     <label class="form-label">Nouveau mot de passe</label>
                     <input type="password" name="password"
                            class="form-control @error('password') is-invalid @enderror">
                     @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
-
                 <div class="mb-3">
                     <label class="form-label">Confirmer le mot de passe</label>
                     <input type="password" name="password_confirmation" class="form-control">
                 </div>
-
                 <button type="submit" class="btn btn-dark w-100">Changer le mot de passe</button>
+            </form>
+        </div>
+    </div>
+
+    {{-- Désactiver le compte --}}
+    <div class="card shadow-sm rounded-4">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">Désactiver le compte</h5>
+            <p class="text-muted">Désactiver votre compte masquera votre profil. Vous pourrez le réactiver en vous reconnectant.</p>
+            <form action="{{ route('profile.deactivate') }}" method="POST">
+                @csrf
+                <button type="submit" class="btn btn-danger w-100"
+                        onclick="return confirm('Êtes-vous sûr de vouloir désactiver votre compte ?')">Désactiver mon compte</button>
             </form>
         </div>
     </div>

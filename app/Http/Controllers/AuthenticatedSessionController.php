@@ -37,6 +37,11 @@ class AuthenticatedSessionController extends Controller
             // 3) Redirection selon le rôle
             $user = Auth::user();
 
+            if (!$user->is_active) {
+                $user->update(['is_active' => true]);
+                $request->session()->put('welcome_back', true);
+            }
+            
             if (method_exists($user, 'isAdmin') && $user->isAdmin()) {
                 return redirect()->route('dashboard');
             }
