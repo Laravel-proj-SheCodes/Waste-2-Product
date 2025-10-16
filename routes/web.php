@@ -297,8 +297,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
 Route::get('/test-token', function () {
-    return env('HUGGINGFACE_TOKEN') ? 'Token OK' : 'Token vide';
+    return env('HUGGINGFACE') ? 'Token OK' : 'Token vide';
 });
 Route::get('/test-path', function () {
     return base_path('.env');
 });
+
+//Route::post('/waste-posts/visual-search', [PostDechetFrontController::class, 'analyze'])->name('front.waste-posts.visual-search');
+
+Route::post('/waste-posts/{post}/estimate', [PostDechetFrontController::class, 'analyze'])->name('front.waste-posts.estimate');
+Route::post('/waste-posts/{postDechet}/estimate-ai', [PostDechetFrontController::class, 'estimateAI'])->name('front.waste-posts.estimateAI');
+Route::post('/waste-posts/visual-search', [PostDechetFrontController::class, 'visualSearch'])->name('front.waste-posts.visual-search');
+
