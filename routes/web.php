@@ -28,6 +28,8 @@ use App\Http\Controllers\DonationController;
 
 use App\Http\Controllers\Front\PropositionFrontController;
 
+use App\Http\Controllers\ChatController;
+
 use App\Http\Controllers\EcoBotGroqController;
 use App\Http\Controllers\TwoFactorController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -123,9 +125,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('annonces/{annonce}/statut', [AnnonceMarketplaceController::class, 'updateStatut'])->name('annonces.statut');
     Route::get('annonces/{annonce}/commandes', [AnnonceMarketplaceController::class, 'showCommandes'])
             ->name('annonces.commandes');
+              Route::post('/chat/open/{proposition}', [ChatController::class, 'openFromProposition'])->name('chat.open');
+    Route::get('/chat/{conversation}/messages', [ChatController::class, 'messages'])->name('chat.messages');
+    Route::post('/chat/{conversation}/messages', [ChatController::class, 'send'])->name('chat.send');
 });
-
-
 
 Route::get('/marketplace', function () {
     return view('frontoffice.pages.marketplace.marketplace');
