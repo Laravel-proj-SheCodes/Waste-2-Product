@@ -46,6 +46,11 @@
     50%  { box-shadow: 0 0 18px rgba(255, 193, 7, .8); background-color: rgba(255, 243, 205, .6); }
     100% { box-shadow: 0 0 0 rgba(255, 193, 7, 0); background-color: transparent; }
   }
+
+  /* Chat bulles */
+  #chatBox .bubble { display:inline-block; padding:.4rem .6rem; border-radius:.5rem; max-width:80%; word-break:break-word; }
+  #chatBox .bubble.me { background:#198754; color:#fff; }
+  #chatBox .bubble.other { background:#f5f5f5; color:#222; }
 </style>
 
 <div class="container py-4">
@@ -89,6 +94,31 @@
       </div>
     </div>
   </div>
+
+  @php
+    // ===== Détermination du droit d’afficher le bouton "💬 Chat" =====
+    $postDechet->loadMissing('propositions');
+    $acceptedStatuses = ['accepte','accepted','acceptee','acceptée'];
+    $userId   = auth()->id();
+    $isOwner  = $userId && ($postDechet->user_id === $userId);
+
+    // Le propriétaire voit le chat si au moins UNE proposition est acceptée
+    $acceptedForOwner = $isOwner
+      ? $postDechet->propositions->first(function($p) use($acceptedStatuses){
+          return in_array(strtolower((string)($p->statut ?? '')), $acceptedStatuses, true);
+        })
+      : null;
+
+    // Le client voit le chat si SA proposition est acceptée
+    $acceptedForMe = (!$isOwner && $userId)
+      ? $postDechet->propositions->first(function($p) use($userId, $acceptedStatuses){
+          return (int)$p->user_id === (int)$userId
+              && in_array(strtolower((string)($p->statut ?? '')), $acceptedStatuses, true);
+        })
+      : null;
+
+    $acceptedProp = $acceptedForOwner ?: $acceptedForMe;
+  @endphp
 
   <div class="row g-4">
     {{-- Galerie gauche --}}
@@ -147,10 +177,9 @@
           @else
             {{-- Utilisateur connecté mais NON propriétaire : bouton Proposer (caché si déjà accepté ou déjà proposé) --}}
             @php
-              $postDechet->loadMissing('propositions');
-              $dejaAcceptee   = $postDechet->propositions->contains(fn($p) => $p->statut === 'accepte');
+              $dejaAcceptee   = $postDechet->propositions->contains(fn($p) => strtolower((string)$p->statut) === 'accepte');
               $jAiDejaPropose = auth()->check()
-                                   ? $postDechet->propositions->contains(fn($p) => $p->user_id === auth()->id())
+                                   ? $postDechet->propositions->contains(fn($p) => (int)$p->user_id === (int)auth()->id())
                                    : false;
             @endphp
 
@@ -167,6 +196,15 @@
                 </a>
               @endif
             @endif
+          @endif
+
+          {{-- ✅ Bouton Chat pour propriétaire OU client si proposition acceptée --}}
+          @if($acceptedProp)
+            <button type="button"
+                    class="btn btn-success w-100 mt-3 open-chat"
+                    data-proposition-id="{{ $acceptedProp->id }}">
+              💬 Chat
+            </button>
           @endif
         @else
           {{-- Invité : incitation à se connecter pour proposer --}}
@@ -198,15 +236,18 @@
                       {{ $prop->user->name ?? 'Utilisateur' }}
 
                       @php
-                        $badgeClass = $prop->statut === 'accepte' ? 'bg-success'
-                                     : ($prop->statut === 'refuse' ? 'bg-danger' : 'bg-secondary');
+                        $badgeClass = ($prop->statut === 'accepte' || strtolower((string)$prop->statut) === 'accepted') ? 'bg-success'
+                                     : (( $prop->statut === 'refuse') ? 'bg-danger' : 'bg-secondary');
 
                         $labelMap = [
                           'en_attente' => 'en attente',
                           'accepte'    => 'acceptée',
-                           'refuse'     => 'refusée',   //
+                          'accepted'   => 'acceptée',
+                          'acceptee'   => 'acceptée',
+                          'acceptée'   => 'acceptée',
+                          'refuse'     => 'refusée',
                         ];
-                        $label = $labelMap[$prop->statut ?? 'en_attente'];
+                        $label = $labelMap[strtolower((string)($prop->statut ?? 'en_attente'))] ?? ($prop->statut ?? '—');
                       @endphp
 
                       <span class="badge ms-2 {{ $badgeClass }}">{{ $label }}</span>
@@ -219,9 +260,9 @@
                     </div>
                   </div>
 
-                  {{-- Actions : accepter / refuser (si en attente) --}}
-                  @if(($prop->statut ?? 'en_attente') === 'en_attente')
-                    <div class="text-end">
+                  <div class="text-end">
+                    {{-- Actions : accepter / refuser (si en attente) --}}
+                    @if(($prop->statut ?? 'en_attente') === 'en_attente')
                       <form action="{{ route('front.propositions.accept', $prop) }}" method="POST" class="d-inline">
                         @csrf
                         <button type="submit" class="btn btn-sm btn-success">Accepter</button>
@@ -230,8 +271,17 @@
                         @csrf
                         <button type="submit" class="btn btn-sm btn-outline-danger">Refuser</button>
                       </form>
-                    </div>
-                  @endif
+                    @endif
+
+                    {{-- ✅ Bouton Chat (tu l’as déjà) --}}
+@if($acceptedProp)
+  <button type="button"
+          class="btn btn-success w-100 mt-3 open-chat"
+          data-proposition-id="{{ $acceptedProp->id }}">
+    💬 Chat
+  </button>
+@endif
+                  </div>
                 </div>
               </div>
             @endforeach
@@ -252,14 +302,115 @@
     const el = document.getElementById('proposition-' + id);
     if (!el) return;
 
-    // ajouter l'effet
     el.classList.add('glow-target');
-
-    // scroll dans la page jusqu'à l’élément
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-    // retirer la classe après ~5 secondes
     setTimeout(() => el.classList.remove('glow-target'), 5200);
   })();
+</script>
+
+{{-- ========= Modal de chat réutilisable ========= --}}
+<div class="modal fade" id="chatModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Chat</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <div id="chatBox" class="border rounded p-2" style="height:360px; overflow:auto;"></div>
+      </div>
+      <div class="modal-footer">
+        <input id="chatInput" class="form-control" placeholder="Écrire un message…">
+        <button id="chatSend" class="btn btn-success">Envoyer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{-- ========= Logique du chat : open + polling + send ========= --}}
+<script>
+(function () {
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  let chat = { convId:null, lastId:0, poll:null };
+
+  async function openChat(propositionId){
+    try{
+      const r = await fetch(`/chat/open/${propositionId}`, {
+        method:'POST',
+        headers:{ 'X-CSRF-TOKEN': csrf }
+      });
+      const data = await r.json();
+      if(!data.ok){ alert('Impossible d’ouvrir le chat.'); return; }
+
+      chat.convId = data.conversation.id;
+      chat.lastId = 0;
+      document.querySelector('#chatModal .modal-title').textContent =
+        `Chat – ${data.conversation.title} (avec ${data.conversation.with})`;
+      document.getElementById('chatBox').innerHTML = '';
+
+      await loadMessages();
+      new bootstrap.Modal(document.getElementById('chatModal')).show();
+      startPolling();
+    }catch(e){
+      console.error(e); alert('Erreur réseau à l’ouverture du chat.');
+    }
+  }
+
+  async function loadMessages(){
+    if(!chat.convId) return;
+    try{
+      const r = await fetch(`/chat/${chat.convId}/messages?after=${chat.lastId}`);
+      const data = await r.json(); if(!data.ok) return;
+
+      const box = document.getElementById('chatBox');
+      data.messages.forEach(m=>{
+        chat.lastId = Math.max(chat.lastId, m.id);
+        const row = document.createElement('div');
+        row.className = (m.me ? 'text-end' : 'text-start') + ' my-1';
+        row.innerHTML = `<span class="bubble ${m.me?'me':'other'}">${m.body}</span>`;
+        box.appendChild(row);
+      });
+      box.scrollTop = box.scrollHeight;
+    }catch(e){ console.error(e); }
+  }
+
+  function startPolling(){ stopPolling(); chat.poll = setInterval(loadMessages, 3000); }
+  function stopPolling(){ if(chat.poll){ clearInterval(chat.poll); chat.poll=null; } }
+
+  async function sendMessage(){
+    if(!chat.convId) return;
+    const input = document.getElementById('chatInput');
+    const body  = (input.value || '').trim(); if(!body) return;
+
+    try{
+      const r = await fetch(`/chat/${chat.convId}/messages`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'X-CSRF-TOKEN': csrf },
+        body: JSON.stringify({ body })
+      });
+      const data = await r.json();
+      if(data.ok){
+        input.value='';
+        chat.lastId = Math.max(chat.lastId, data.message.id);
+        const box = document.getElementById('chatBox');
+        const row = document.createElement('div');
+        row.className = 'text-end my-1';
+        row.innerHTML = `<span class="bubble me">${data.message.body}</span>`;
+        box.appendChild(row);
+        box.scrollTop = box.scrollHeight;
+      }
+    }catch(e){ console.error(e); alert('Envoi impossible.'); }
+  }
+
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.open-chat');
+    if(btn){ openChat(btn.dataset.propositionId); }
+  });
+  document.getElementById('chatSend')?.addEventListener('click', sendMessage);
+  document.getElementById('chatInput')?.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter'){ e.preventDefault(); sendMessage(); }
+  });
+  document.getElementById('chatModal')?.addEventListener('hidden.bs.modal', stopPolling);
+})();
 </script>
 @endsection

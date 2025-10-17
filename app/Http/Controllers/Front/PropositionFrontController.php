@@ -7,6 +7,7 @@ use App\Http\Requests\Front\StorePropositionFrontRequest;
 use App\Http\Requests\Front\UpdatePropositionFrontRequest;
 use App\Models\PostDechet;
 use App\Models\Proposition;
+use App\Models\Conversation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;              // ✅ manquait
 use Illuminate\Http\Request;                   // ✅ manquait
@@ -143,6 +144,16 @@ public function accept(Proposition $proposition)
             propositionId: $proposition->id,
             postTitle:     $proposition->postDechet->titre ?? 'Post'
         ));
+        // 4) ✅ Créer (ou retrouver) la conversation pour le chat
+    Conversation::firstOrCreate(
+        ['proposition_id' => $proposition->id],
+        [
+            'post_dechet_id' => $proposition->post_dechet_id,
+            'owner_id'       => $proposition->postDechet->user_id, // propriétaire du post
+            'client_id'      => $proposition->user_id,              // auteur de la proposition
+            'status'         => 'active',
+        ]
+    );
     });
 
     // Redirection vers la page front avec highlight
