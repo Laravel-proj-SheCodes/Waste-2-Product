@@ -10,12 +10,14 @@
     <hr class="horizontal dark mt-0 mb-2">
     <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
         <ul class="navbar-nav">
-            <li class="nav-item">
-                <a class="nav-link text-dark" href="{{ url('/users') }}">
-                    <i class="material-symbols-rounded opacity-5">people</i>
-                    <span class="nav-link-text ms-1">Users</span>
-                </a>
-            </li>
+            
+                <li class="nav-item">
+                    <a class="nav-link text-dark {{ Route::is('users.*') ? 'active bg-gradient-dark text-white' : '' }}" href="{{ route('users.index') }}">
+                        <i class="material-symbols-rounded opacity-5">people</i>
+                        <span class="nav-link-text ms-1">Utilisateurs</span>
+                    </a>
+                </li>
+            
             <li class="nav-item">
                 <a class="nav-link text-dark" href="{{ url('/profiles') }}">
                     <i class="material-symbols-rounded opacity-5">account_circle</i>
@@ -79,15 +81,22 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-dark" href="{{ url('/transformations') }}">
+                <a class="nav-link text-dark" href="{{ route('proposition-transformations.index') }}">
                     <i class="material-symbols-rounded opacity-5">build</i>
                     <span class="nav-link-text ms-1">Transformations</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-dark" href="{{ url('/products') }}">
+                <a class="nav-link text-dark" href="{{ route('processus-transformations.index')}}">
                     <i class="material-symbols-rounded opacity-5">inventory</i>
-                    <span class="nav-link-text ms-1">Products</span>
+                    <span class="nav-link-text ms-1">Process</span>
+                </a>
+            </li>
+
+             <li class="nav-item">
+                <a class="nav-link text-dark" href="{{ route('produit-transformes.index')}}">
+                    <i class="material-symbols-rounded opacity-5">inventory</i>
+                    <span class="nav-link-text ms-1">Produit</span>
                 </a>
             </li>
         </ul>

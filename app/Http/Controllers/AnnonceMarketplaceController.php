@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AnnonceMarketplace;
 use App\Models\PostDechet;
+use App\Services\CurrencyConverter;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -16,9 +17,56 @@ class AnnonceMarketplaceController extends Controller
      */
     public function index(Request $request)
     {
-        $annonces = AnnonceMarketplace::with(['postDechet.user'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $query = AnnonceMarketplace::with(['postDechet.user']);
+
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->whereHas('postDechet', function($subQuery) use ($search) {
+                    $subQuery->where('titre', 'like', "%{$search}%")
+                             ->orWhere('description', 'like', "%{$search}%");
+                })
+                ->orWhereHas('postDechet.user', function($subQuery) use ($search) {
+                    $subQuery->where('name', 'like', "%{$search}%")
+                             ->orWhere('email', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        // Filter by status
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('statut_annonce', $request->status);
+        }
+
+        // Filter by price range
+        if ($request->filled('min_price')) {
+            $query->where('prix', '>=', $request->min_price);
+        }
+        if ($request->filled('max_price')) {
+            $query->where('prix', '<=', $request->max_price);
+        }
+
+        // Filter by date range
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // Sorting
+        $sortField = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+        
+        $allowedSortFields = ['created_at', 'prix', 'statut_annonce'];
+        if (in_array($sortField, $allowedSortFields)) {
+            $query->orderBy($sortField, $sortOrder);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $annonces = $query->paginate(10)->withQueryString();
 
         $stats = [
             'total' => AnnonceMarketplace::count(),
@@ -168,18 +216,48 @@ class AnnonceMarketplaceController extends Controller
     /**
      * Mes annonces (pour le vendeur)
      */
-    public function mesAnnonces(): JsonResponse
-    {
-        if (!Auth::check()) {
-            return response()->json(['error' => 'Authentification requise'], 401);
-        }
-
-        $annonces = AnnonceMarketplace::whereHas('postDechet', function($query) {
-            $query->where('user_id', Auth::id());
-        })->with(['postDechet', 'commandes'])->get();
-        
-        return response()->json($annonces);
+public function mesAnnonces(Request $request): JsonResponse
+{
+    if (!Auth::check()) {
+        return response()->json(['error' => 'Authentification requise'], 401);
     }
+
+    $toCurrency = $request->query('to', 'EUR');
+    
+    $annonces = AnnonceMarketplace::whereHas('postDechet', function($query) {
+        $query->where('user_id', Auth::id());
+    })->with(['postDechet', 'commandes'])->get();
+    
+    // Conversion de devise sécurisée avec gestion d'erreur
+    try {
+        $converter = new CurrencyConverter();
+        
+        $annonces->each(function ($annonce) use ($converter, $toCurrency) {
+            if ($toCurrency !== 'EUR') {
+                try {
+                    $annonce->converted_price = $converter->convert($annonce->prix, $toCurrency);
+                } catch (\Exception $e) {
+                    Log::warning('Currency conversion failed', [
+                        'error' => $e->getMessage(),
+                        'annonce_id' => $annonce->id
+                    ]);
+                    $annonce->converted_price = $annonce->prix;
+                }
+            } else {
+                $annonce->converted_price = $annonce->prix;
+            }
+            $annonce->display_currency = $toCurrency;
+        });
+    } catch (\Exception $e) {
+        Log::error('CurrencyConverter initialization failed', ['error' => $e->getMessage()]);
+        $annonces->each(function ($annonce) {
+            $annonce->converted_price = $annonce->prix;
+            $annonce->display_currency = 'EUR';
+        });
+    }
+    
+    return response()->json($annonces);
+}
 
     /**
      * Changer le statut d'une annonce
@@ -228,6 +306,13 @@ public function getUserPostDechets(): JsonResponse
         'count'   => $postDechets->count(),
         'data'    => $postDechets
     ], 200);
+}
+
+public function showCommandes(AnnonceMarketplace $annonce)
+{
+    $annonce->load(['commandes.acheteur', 'commandes.vendeur', 'postDechet']);
+    
+    return view('backoffice.pages.annonces.commandes', compact('annonce'));
 }
 
 }

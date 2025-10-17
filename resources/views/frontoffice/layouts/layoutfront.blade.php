@@ -36,5 +36,8 @@
 
     {{-- ✅ Les pages peuvent injecter du JS ici --}}
     @stack('scripts')
+
+  <x-ecobot />
+
   </body>
 </html>

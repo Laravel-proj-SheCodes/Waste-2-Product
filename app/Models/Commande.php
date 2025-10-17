@@ -28,14 +28,24 @@ class Commande extends Model
     }
 
     // Relation pour obtenir le vendeur
-    public function vendeur()
-    {
-        return $this->hasOneThrough(
-            User::class, 
-            AnnonceMarketplace::class, 
-            'id', 'id', 
-            'annonce_marketplace_id', 'post_dechet_id'
-        )->join('post_dechets', 'annonce_marketplaces.post_dechet_id', '=', 'post_dechets.id');
-    }
+  public function vendeur()
+{
+    return $this->hasOneThrough(
+        User::class,              // 1. Modèle Final (le vendeur)
+        AnnonceMarketplace::class, // 2. Modèle Intermédiaire (pour aller de Commande à PostDechet)
+        'id',                     // 3. Clé étrangère sur la table Intermédiaire (annonce_marketplaces.id)
+        'id',                     // 4. Clé étrangère sur la table Finale (users.id)
+        'annonce_marketplace_id', // 5. Clé locale sur la table Actuelle (commandes.annonce_marketplace_id)
+        'post_dechet_id'          // 6. Clé étrangère sur la table Intermédiaire (annonce_marketplaces.post_dechet_id)
+    );
+}
+
+public function getVendeurAttribute()
+{
+    // Accès: Commande -> AnnonceMarketplace -> PostDechet -> User
+    return $this->annonceMarketplace->postDechet->user ?? null;
+}
+
+
 
 }

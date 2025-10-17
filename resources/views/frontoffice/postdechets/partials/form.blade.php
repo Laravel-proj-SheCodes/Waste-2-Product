@@ -104,6 +104,54 @@
         </div>
     @endif
 </div>
+<!-- mouna's job for troc part-->
+ {{-- Analyse IA pour les posts de type troc --}}
+<div class="col-12" id="analyze-section" style="display:none;">
+  <label class="form-label fw-bold text-success">Analyse de l’image (optionnelle)</label>
+  <input type="file" id="analyze-photo" class="form-control mb-2" accept="image/*">
+  <button type="button" id="analyze-btn" class="btn btn-outline-success">Analyser l’image</button>
+  <div id="analyze-result" class="mt-3 text-info"></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const typeSelect = document.querySelector('#type_post');
+  const section = document.querySelector('#analyze-section');
+  const btn = document.querySelector('#analyze-btn');
+  const input = document.querySelector('#analyze-photo');
+  const result = document.querySelector('#analyze-result');
+
+  // 🟢 Affiche la section seulement si type = troc
+  typeSelect.addEventListener('change', () => {
+    section.style.display = (typeSelect.value === 'troc') ? 'block' : 'none';
+  });
+
+  // 🧠 Analyse l’image via API Laravel
+  btn.addEventListener('click', async () => {
+    if (!input.files[0]) {
+      result.innerHTML = '<span class="text-danger">Choisissez une image d’abord.</span>';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('photo', input.files[0]);
+
+    result.innerHTML = 'Analyse en cours...';
+
+    const res = await fetch("{{ route('front.waste-posts.analyze') }}", {
+      method: "POST",
+      headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+      body: formData
+    });
+
+    const data = await res.json();
+    result.innerHTML = data.label 
+      ? `<strong>Résultat :</strong> ${data.message}`
+      : `<span class="text-danger">${data.error ?? 'Erreur lors de l’analyse'}</span>`;
+  });
+});
+</script>
+<!--end mouna's job -->
 
 {{-- Statut --}}
 <div class="col-md-6">
@@ -116,3 +164,59 @@
     </select>
     @error('statut') <small class="text-danger">{{ $message }}</small> @enderror
 </div>
+<!--mouna's job-->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const typeSelect = document.querySelector('#type_post');
+  const section = document.querySelector('#analyze-section');
+  const btn = document.querySelector('#analyze-btn');
+  const input = document.querySelector('#analyze-photo');
+  const result = document.querySelector('#analyze-result');
+
+  // Affiche la section seulement si type = troc
+  typeSelect.addEventListener('change', () => {
+    section.style.display = (typeSelect.value === 'troc') ? 'block' : 'none';
+  });
+
+  // Analyse l’image via API Laravel
+btn.addEventListener('click', async () => {
+    if (!input.files[0]) {
+        result.innerHTML = '<span class="text-danger">Choisissez une image d’abord.</span>';
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('photo', input.files[0]);
+    result.innerHTML = 'Analyse en cours...';
+
+    try {
+        const res = await fetch("{{ route('front.waste-posts.analyze') }}", {
+            method: "POST",
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            body: formData
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            result.innerHTML = `<strong>Analyse terminée.</strong>`;
+
+            // Remplissage automatique
+            document.querySelector('input[name="titre"]').value = data.titre;
+            document.querySelector('input[name="categorie"]').value = data.categorie;
+            document.querySelector('textarea[name="description"]').value = data.description;
+            document.querySelector('select[name="etat"]').value = data.etat;
+            document.querySelector('input[name="quantite"]').value = data.quantite;
+            document.querySelector('input[name="unite_mesure"]').value = data.unite_mesure;
+
+        } else {
+            result.innerHTML = `<span class="text-danger">${data.error ?? 'Erreur lors de l’analyse'}</span>`;
+        }
+
+    } catch (e) {
+        result.innerHTML = `<span class="text-danger">Erreur réseau ou serveur : ${e.message}</span>`;
+    }
+});
+
+});
+</script>

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Storage;
 
 class PostDechet extends Model
 {
@@ -55,4 +56,21 @@ class PostDechet extends Model
     {
         return $this->belongsToMany(User::class, 'favorites', 'post_dechet_id', 'user_id')->withTimestamps();
     }
+    public function getMainPhotoUrlAttribute(): string
+{
+    $placeholder = asset('images/placeholder.jpg');
+
+    $photos = is_array($this->photos) ? $this->photos : [];
+    if (!count($photos)) return $placeholder;
+
+    $p = ltrim(str_replace('\\', '/', $photos[0]), '/');
+
+    if (Storage::disk('public')->exists($p)) {
+        return Storage::disk('public')->url($p); // /storage/...
+    }
+    if (file_exists(public_path('storage/'.$p))) {
+        return asset('storage/'.$p);
+    }
+    return $placeholder;
+}
 }

@@ -7,6 +7,7 @@ use App\Models\Proposition;
 use App\Models\User;
 use App\Http\Requests\StorePropositionTransformationRequest;
 use App\Http\Requests\UpdatePropositionTransformationRequest;
+use Illuminate\Support\Facades\Auth;
 
 class PropositionTransformationController extends Controller
 {
@@ -20,7 +21,7 @@ class PropositionTransformationController extends Controller
 
     public function create(){
         $posts = Proposition::with('postDechet')->get(); // pour select
-        $transformateurs = User::where('type_utilisateur','Transformateur')->pluck('name','id');
+        $transformateurs = User::where('role','Transformateur')->pluck('name','id');
        // $transformateurs = User::pluck('name', 'id');
 
         return view('backoffice.pages.transformation.propositions.create', compact('posts','transformateurs'));
@@ -41,7 +42,7 @@ class PropositionTransformationController extends Controller
 
     public function edit(PropositionTransformation $propositionTransformation){
         $posts = Proposition::with('postDechet')->get();
-        $transformateurs = User::where('type_utilisateur','Transformateur')->pluck('name','id');
+        $transformateurs = User::where('role','Transformateur')->pluck('name','id');
         return view('backoffice.pages.transformation.propositions.edit', compact('propositionTransformation','posts','transformateurs'));
     }
 

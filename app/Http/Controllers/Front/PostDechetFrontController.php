@@ -9,9 +9,86 @@ use App\Models\PostDechet;
 use App\Models\Proposition;              // ✅ AJOUTER
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class PostDechetFrontController extends Controller
 {
+
+//mouna job (troc)
+
+
+// analyse IA pour les posts de type troc
+public function analyze(Request $request)
+{
+    if (!$request->hasFile('photo')) {
+        return response()->json(['error' => 'Aucune image reçue'], 400);
+    }
+
+    $file = $request->file('photo');
+    $path = $file->store('analyze', 'public');
+
+    $token = env('HUGGINGFACE');
+    $imageData = base64_encode(file_get_contents($file->getRealPath()));
+
+    try {
+        // 1️⃣ Reconnaissance de l’objet
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
+        ])->post('https://api-inference.huggingface.co/models/google/vit-base-patch16-224', [
+            'inputs' => $imageData
+        ]);
+
+        $result = $response->json();
+
+        if (!isset($result[0]['label'])) {
+            return response()->json(['error' => 'Analyse impossible', 'result' => $result]);
+        }
+
+        $label = $result[0]['label'];
+
+        // 2️⃣ Générer un titre court et descriptif
+        $titlePrompt = "Propose un titre court et précis pour un objet de type '$label' sur cette image.";
+
+        $titleResponse = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
+        ])->post('https://api-inference.huggingface.co/models/gpt2', [
+            'inputs' => $titlePrompt
+        ]);
+
+        $titleResult = $titleResponse->json();
+        $generatedTitle = $titleResult[0]['generated_text'] ?? ucfirst($label);
+
+        // 3️⃣ Générer une description détaillée incluant la couleur
+        $descPrompt = "Décris en détail cet objet de type '$label' en mentionnant sa couleur dominante, son état, ses caractéristiques visibles et son usage.";
+
+        $descResponse = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
+        ])->post('https://api-inference.huggingface.co/models/gpt2', [
+            'inputs' => $descPrompt
+        ]);
+
+        $descResult = $descResponse->json();
+        $detailedDesc = $descResult[0]['generated_text'] ?? "Objet: $label, couleur dominante visible, état bon et usage possible.";
+
+        return response()->json([
+            'success' => true,
+            'titre' => $generatedTitle,
+            'categorie' => $label,
+            'etat' => 'neuf',          // valeur par défaut
+            'unite_mesure' => 'pièce',     // valeur par défaut
+            'quantite' => 1,               // valeur par défaut
+            'description' => $detailedDesc
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Erreur API : ' . $e->getMessage()]);
+    }
+}
+
     // Liste publique
     public function index()
     {
@@ -113,4 +190,139 @@ class PostDechetFrontController extends Controller
             ->route('front.waste-posts.index')
             ->with('success', 'Post supprimé.');
     }
+public function estimateAI(PostDechet $postDechet)
+{
+    // Vérifie qu'il y a au moins une photo
+    $photoPath = $postDechet->photos[0] ?? null;
+    if (!$photoPath || !Storage::disk('public')->exists($photoPath)) {
+        return response()->json(['error' => 'Aucune image disponible pour estimation'], 400);
+    }
+
+    $filePath = Storage::disk('public')->path($photoPath);
+    $imageData = base64_encode(file_get_contents($filePath));
+    $token = env('HUGGINGFACE');
+
+    try {
+        // 1️⃣ Reconnaissance de l'objet avec HuggingFace Vision Model
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
+        ])->post('https://api-inference.huggingface.co/models/google/vit-base-patch16-224', [
+            'inputs' => $imageData
+        ]);
+
+        $result = $response->json();
+        $label = $result[0]['label'] ?? null;
+
+        if (!$label) {
+            return response()->json(['error' => 'Objet non reconnu.'], 400);
+        }
+
+        // 2️⃣ Table de prix de référence par catégorie
+        $prixTable = [
+        // Furniture
+    'sofa' => 1500,
+    'chair' => 150,
+    'table' => 300,
+    'bed' => 800,
+    'lamp' => 80,
+    'desk' => 200,
+    'studio couch, day bed' => 1200,
+
+    // Vehicles
+    'car' => 20000,
+    'bicycle' => 500,
+    'motorbike' => 3000,
+
+    // Electronics
+    'laptop' => 2500,
+    'smartphone' => 1200,
+    'tablet' => 900,
+    'television' => 1500,
+    'headphones' => 200,
+
+    // Toys & games
+    'toy' => 50,
+    'board game' => 80,
+    'robot' => 400,
+    'doll' => 60,
+
+    // Miscellaneous
+    'book' => 30,
+    'bag' => 150,
+    'shoes' => 100,
+    'watch' => 300,
+    'clothing' => 200,
+        ];
+
+        // Estimation par défaut si catégorie inconnue
+        $estimatedPrice = $prixTable[strtolower($label)] ?? 100;
+
+        // Ajustement selon l'état si disponible
+        $etat = strtolower($postDechet->etat ?? 'neuf');
+        $etatFactor = match($etat) {
+            'neuf' => 1.0,
+            'bon' => 0.7,
+            'usé' => 0.4,
+            default => 1.0,
+        };
+        $estimatedPrice = round($estimatedPrice * $etatFactor, 2);
+
+        // Enregistrer temporairement dans l'objet pour affichage côté Blade
+        $postDechet->estimated_price = $estimatedPrice;
+
+        return response()->json([
+            'success' => true,
+            'categorie' => $label,
+            'estimated_price' => $estimatedPrice
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Erreur IA : ' . $e->getMessage()], 500);
+    }
+}
+
+// recherche visuelle
+public function visualSearch(Request $request)
+{
+    $request->validate([
+        'photo' => 'required|image|max:5120', // max 5MB
+    ]);
+
+    $file = $request->file('photo');
+    $imageData = base64_encode(file_get_contents($file->getRealPath()));
+    $token = env('HUGGINGFACE');
+
+    try {
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
+        ])->post('https://api-inference.huggingface.co/models/google/vit-base-patch16-224', [
+            'inputs' => $imageData
+        ]);
+
+        $result = $response->json();
+        $label = $result[0]['label'] ?? null;
+
+        if (!$label) {
+            return redirect()->back()->with('error', 'Objet non reconnu.');
+        }
+
+        // Recherche des posts correspondant à la catégorie détectée
+        $posts = PostDechet::where('categorie', 'like', "%$label%")->latest()->paginate(9);
+
+        // Passer un indicateur pour savoir qu’on est en mode recherche
+        return view('frontoffice.pages.postdechets.troc-index', [
+            'posts' => $posts,
+            'searching' => true,
+            'searchLabel' => $label
+        ]);
+
+    } catch (\Exception $e) {
+        return redirect()->back()->with('error', 'Erreur IA : ' . $e->getMessage());
+    }
+}
+
+
+
 }

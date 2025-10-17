@@ -19,7 +19,7 @@
 
 <div class="container py-5">
   <div class="d-flex justify-content-between align-items-center mb-4">
-   <h1 class="page-title">Posts déchets</h1>
+    <h1 class="page-title">Posts déchets</h1>
 
     @auth
       <a href="{{ route('front.waste-posts.create') }}" class="btn btn-success">Nouveau post</a>
@@ -28,40 +28,23 @@
 
   <div class="row g-4">
     @forelse ($posts as $post)
-      @php
-        $paths     = is_array($post->photos) ? $post->photos : [];
-        $firstPath = count($paths) ? str_replace('\\','/',$paths[0]) : null;
-
-        // URL par défaut
-        $imgUrl = asset('images/placeholder.jpg');
-
-        if ($firstPath) {
-          $fp = ltrim($firstPath,'/');
-          if (Storage::disk('public')->exists($fp)) {
-            $imgUrl = Storage::disk('public')->url($fp);           // /storage/...
-          } elseif (file_exists(public_path('storage/'.$fp))) {
-            $imgUrl = asset('storage/'.$fp);                       // fallback direct
-          }
-        }
-
-        // Fallback inline qui marche 100% (1x1 gif)
-        $inlineFallback = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
-      @endphp
-
       <div class="col-12 col-sm-6 col-lg-4">
         <div class="w2p-card h-100">
           <div class="position-relative">
+            {{-- Image principale (via accessor $post->main_photo_url) --}}
             <img
-              src="{{ $imgUrl }}"
-              alt=""                         {{-- pas de titre ici pour éviter le texte quand l’image casse --}}
+              src="{{ $post->main_photo_url }}"
+              alt="{{ $post->titre }}"
               class="w2p-thumb"
               loading="lazy"
-              onerror="this.onerror=null;this.src='{{ $inlineFallback }}';"
+              onerror="this.onerror=null;this.src='{{ asset('images/placeholder.jpg') }}';"
             >
-            {{-- SEULEMENT catégorie (plus de titre sur l’image) --}}
+
+            {{-- Catégorie en haut à gauche --}}
             <div class="position-absolute top-0 start-0 p-2">
               <span class="badge bg-light text-dark w2p-chip">{{ $post->categorie ?? '—' }}</span>
             </div>
+
             {{-- Quantité en haut à droite --}}
             <div class="position-absolute top-0 end-0 p-2">
               <span class="badge bg-success w2p-chip">{{ $post->quantite }} {{ $post->unite_mesure }}</span>
@@ -69,7 +52,6 @@
           </div>
 
           <div class="p-3">
-            {{-- Titre dans la carte (plus d’overlay) --}}
             <h5 class="fw-semibold mb-2">{{ $post->titre }}</h5>
 
             <p class="text-muted mb-3" style="min-height:48px;">
