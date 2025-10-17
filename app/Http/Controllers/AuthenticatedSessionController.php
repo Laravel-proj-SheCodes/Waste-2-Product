@@ -22,7 +22,7 @@ class AuthenticatedSessionController extends Controller
     /**
      * Traite la soumission du formulaire de connexion.
      */
-    public function store(Request $request)
+     public function store(Request $request)
     {
         // 1) Valider les champs
         $credentials = $request->validate([
@@ -34,8 +34,13 @@ class AuthenticatedSessionController extends Controller
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
-            // 3) Redirection selon le rôle
             $user = Auth::user();
+
+            // If 2FA is enabled, send code and redirect to verification page
+            if ($user->two_factor_enabled) {
+                $user->generateAndSendTwoFactorCode();
+                return redirect()->route('two-factor.verify-show')->with('success', 'Verification code sent to your email.');
+            }
 
             if (!$user->is_active) {
                 $user->update(['is_active' => true]);
@@ -55,6 +60,7 @@ class AuthenticatedSessionController extends Controller
             'email' => 'Identifiants incorrects.',
         ])->onlyInput('email');
     }
+
 
     /**
      * Affiche le formulaire d'inscription.

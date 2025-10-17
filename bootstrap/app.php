@@ -10,6 +10,11 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->alias([
+            'verify.two_factor' => \App\Http\Middleware\VerifyTwoFactor::class,
+        ]);
+    })
     ->withMiddleware(function (Middleware $middleware) {
         //
     })

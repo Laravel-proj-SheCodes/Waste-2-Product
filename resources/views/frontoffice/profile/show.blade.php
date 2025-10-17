@@ -46,6 +46,21 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
         </div>
     @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show rounded-3" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    @endif
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show rounded-3" role="alert">
+            <strong>Erreur!</strong>
+            @foreach ($errors->all() as $error)
+                <div>{{ $error }}</div>
+            @endforeach
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    @endif
 
     <div class="row">
         <!-- Profile Overview -->
@@ -64,11 +79,19 @@
                     <i class="bi bi-shield-fill profile-icon" aria-hidden="true"></i>
                     <span class="fw-medium">Rôle : </span>{{ $user->isAdmin() ? 'Administrateur' : 'Client' }}
                 </div>
-                <div>
+                <div class="mb-3">
                     <i class="bi bi-check-circle-fill profile-icon" aria-hidden="true"></i>
                     <span class="fw-medium">Statut : </span>
                     <span class="{{ $user->is_active ? 'text-success' : 'text-danger' }}">
                         {{ $user->is_active ? 'Actif' : 'Inactif' }}
+                    </span>
+                </div>
+                <!-- Added 2FA status to profile overview -->
+                <div>
+                    <i class="bi bi-shield-lock profile-icon" aria-hidden="true"></i>
+                    <span class="fw-medium">2FA : </span>
+                    <span class="{{ $user->two_factor_enabled ? 'text-success' : 'text-warning' }}">
+                        {{ $user->two_factor_enabled ? 'Activé' : 'Désactivé' }}
                     </span>
                 </div>
             </div>
@@ -153,6 +176,102 @@
                         </div>
                         <button type="submit" class="btn btn-dark w-100">Changer le mot de passe</button>
                     </form>
+                </div>
+            </div>
+
+            <!-- Two-Factor Authentication -->
+            <!-- Integrated 2FA section with consistent Bootstrap styling -->
+            <div class="card mb-4 shadow-sm rounded-4 form-section">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3">
+                        <i class="bi bi-shield-lock me-2" aria-hidden="true"></i>
+                        Authentification à deux facteurs
+                    </h5>
+                    
+                    <!-- 2FA Status -->
+                    <div class="mb-4">
+                        @if ($user->two_factor_enabled)
+                            <div class="alert alert-success mb-0">
+                                <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>
+                                L'authentification à deux facteurs est <strong>activée</strong>
+                            </div>
+                        @else
+                            <div class="alert alert-warning mb-0">
+                                <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>
+                                L'authentification à deux facteurs est <strong>désactivée</strong>
+                            </div>
+                        @endif
+                    </div>
+
+                    @if (!$user->two_factor_enabled && !$user->two_factor_code)
+                        <!-- Enable 2FA Section - Show when 2FA is disabled and no code pending -->
+                        <p class="text-muted mb-3">
+                            Renforcez la sécurité de votre compte en activant l'authentification à deux facteurs. 
+                            Vous recevrez un code de vérification par email à chaque connexion.
+                        </p>
+                        <form action="{{ route('two-factor.enable') }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-lock me-2" aria-hidden="true"></i>
+                                Activer 2FA
+                            </button>
+                        </form>
+                    @elseif (!$user->two_factor_enabled && $user->two_factor_code)
+                        <!-- Verify Code Section - Show when code has been sent but not yet verified -->
+                        <div class="mb-4">
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-info-circle-fill me-2" aria-hidden="true"></i>
+                                Un code de vérification a été envoyé à votre email. Entrez-le ci-dessous pour activer 2FA.
+                            </div>
+                            <h6 class="fw-bold mb-3">Vérifier le code</h6>
+                            <p class="text-muted mb-3">Entrez le code à 6 chiffres envoyé à votre email :</p>
+                            <form action="{{ route('two-factor.verify') }}" method="POST">
+                                @csrf
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text"><i class="bi bi-key" aria-hidden="true"></i></span>
+                                    <input type="text" 
+                                        class="form-control @error('code') is-invalid @enderror" 
+                                        name="code" 
+                                        placeholder="000000" 
+                                        maxlength="6"
+                                        pattern="[0-9]{6}"
+                                        required
+                                        aria-describedby="code-error">
+                                    @error('code')
+                                        <div id="code-error" class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <button type="submit" class="btn btn-success w-100">Vérifier le code</button>
+                            </form>
+                        </div>
+                    @elseif ($user->two_factor_enabled)
+                        <!-- Disable 2FA Section - Show when 2FA is already enabled -->
+                        <div>
+                            <h6 class="fw-bold mb-3">Désactiver l'authentification à deux facteurs</h6>
+                            <p class="text-muted mb-3">
+                                Pour désactiver 2FA, entrez votre mot de passe pour confirmation :
+                            </p>
+                            <form action="{{ route('two-factor.disable') }}" method="POST">
+                                @csrf
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text"><i class="bi bi-lock" aria-hidden="true"></i></span>
+                                    <input type="password" 
+                                        class="form-control @error('password') is-invalid @enderror" 
+                                        name="password" 
+                                        placeholder="Entrez votre mot de passe"
+                                        required
+                                        aria-describedby="password-error">
+                                    @error('password')
+                                        <div id="password-error" class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <button type="submit" class="btn btn-outline-danger w-100">
+                                    <i class="bi bi-lock-fill me-2" aria-hidden="true"></i>
+                                    Désactiver 2FA
+                                </button>
+                            </form>
+                        </div>
+                    @endif
                 </div>
             </div>
 

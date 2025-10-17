@@ -29,7 +29,7 @@ use App\Http\Controllers\DonationController;
 use App\Http\Controllers\Front\PropositionFrontController;
 
 use App\Http\Controllers\EcoBotGroqController;
-
+use App\Http\Controllers\TwoFactorController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 
@@ -125,6 +125,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('annonces.commandes');
 });
 
+
+
 Route::get('/marketplace', function () {
     return view('frontoffice.pages.marketplace.marketplace');
 })->name('marketplace');
@@ -133,6 +135,20 @@ Route::get('/commandes-page', function () {
 })->name('commandes.page');
 
 Route::get('/api/mes-post-dechets', [AnnonceMarketplaceController::class, 'getUserPostDechets'])->name('api.mes-post-dechets');
+//2fa 
+Route::middleware(['auth', 'verified'])->group(function () {
+    // 2FA Settings
+    Route::get('/profile/two-factor', [TwoFactorController::class, 'show'])->name('two-factor.show');
+    Route::post('/profile/two-factor/enable', [TwoFactorController::class, 'enable'])->name('two-factor.enable');
+    Route::post('/profile/two-factor/verify', [TwoFactorController::class, 'verify'])->name('two-factor.verify');
+    Route::post('/profile/two-factor/disable', [TwoFactorController::class, 'disable'])->name('two-factor.disable');
+});
+
+// 2FA Verification during login (after auth but before verified)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/two-factor/verify', [TwoFactorController::class, 'showVerify'])->name('two-factor.verify-show');
+    Route::post('/two-factor/verify', [TwoFactorController::class, 'verifyLogin'])->name('two-factor.verify-login');
+});
 
 /* =========================
  |  Troc – Backoffice
