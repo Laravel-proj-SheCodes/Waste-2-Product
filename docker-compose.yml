@@ -1,4 +1,5 @@
 version: "3.8"
+
 services:
   jenkins:
     image: jenkins/jenkins:lts
@@ -8,7 +9,7 @@ services:
       - "50000:50000"
     volumes:
       - jenkins_home:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock   # permet à Jenkins d'utiliser Docker du host
     networks:
       - cicd-net
 
@@ -45,7 +46,6 @@ services:
     networks:
       - cicd-net
 
-  # 👉 Ton MySQL pour Laravel
   mysql:
     image: mysql:8.0
     container_name: mysql-laravel
