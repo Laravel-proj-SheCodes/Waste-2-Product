@@ -133,12 +133,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/chat/{conversation}/messages', [ChatController::class, 'send'])->name('chat.send');
 });
 
+Route::get('/annonces/{annonce}/export-orders', [AnnonceMarketplaceController::class, 'exportOrders'])
+    ->name('annonces.exportOrders');
 Route::get('/marketplace', function () {
     return view('frontoffice.pages.marketplace.marketplace');
 })->name('marketplace');
 Route::get('/commandes-page', function () {
     return view('frontoffice.pages.commandes.commandes');
 })->name('commandes.page');
+
 
 Route::get('/api/mes-post-dechets', [AnnonceMarketplaceController::class, 'getUserPostDechets'])->name('api.mes-post-dechets');
 //2fa 
