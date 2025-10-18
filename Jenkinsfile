@@ -19,51 +19,38 @@ pipeline {
         stage('Prepare') {
             steps {
                 echo "Preparing workspace..."
-                // vérifier si PHP est installé, sinon rien
-                sh 'php -v || echo "PHP not found, will use Docker image"'
+                sh 'php -v || echo "PHP not found in Jenkins container!"'
             }
         }
 
         stage('Install dependencies') {
             steps {
-                script {
-                    docker.image('php:8.2-cli').inside('--network host') {
-                        sh '''
-                        apt-get update && apt-get install -y unzip git curl libzip-dev
-                        docker-php-ext-install zip
-                        curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-                        composer install --no-interaction --prefer-dist --optimize-autoloader
-                        '''
-                    }
-                }
+                sh '''
+                apt-get update && apt-get install -y unzip git curl libzip-dev || true
+                composer install --no-interaction --prefer-dist --optimize-autoloader
+                '''
             }
         }
 
         stage('Prepare .env') {
             steps {
-                script {
-                    docker.image('php:8.2-cli').inside('--network host') {
-                        sh '''
-                        cp .env.example .env || true
-                        php -r "file_put_contents('.env', preg_replace('/DB_HOST=.*/', 'DB_HOST=mysql', file_get_contents('.env')));"
-                        php -r "file_put_contents('.env', preg_replace('/DB_PORT=.*/', 'DB_PORT=3306', file_get_contents('.env')));"
-                        php -r "file_put_contents('.env', preg_replace('/DB_DATABASE=.*/', 'DB_DATABASE=waste2product', file_get_contents('.env')));"
-                        php -r "file_put_contents('.env', preg_replace('/DB_USERNAME=.*/', 'DB_USERNAME=laravel', file_get_contents('.env')));"
-                        php -r "file_put_contents('.env', preg_replace('/DB_PASSWORD=.*/', 'DB_PASSWORD=laravel', file_get_contents('.env')));"
-                        '''
-                    }
-                }
+                sh '''
+                cp .env.example .env || true
+                php -r "file_put_contents('.env', preg_replace('/DB_HOST=.*/', 'DB_HOST=mysql', file_get_contents('.env')));"
+                php -r "file_put_contents('.env', preg_replace('/DB_PORT=.*/', 'DB_PORT=3306', file_get_contents('.env')));"
+                php -r "file_put_contents('.env', preg_replace('/DB_DATABASE=.*/', 'DB_DATABASE=waste2product', file_get_contents('.env')));"
+                php -r "file_put_contents('.env', preg_replace('/DB_USERNAME=.*/', 'DB_USERNAME=laravel', file_get_contents('.env')));"
+                php -r "file_put_contents('.env', preg_replace('/DB_PASSWORD=.*/', 'DB_PASSWORD=laravel', file_get_contents('.env')));"
+                '''
             }
         }
 
         stage('Migrate & Tests') {
             steps {
-                script {
-                    docker.image('php:8.2-cli').inside('--network host') {
-                        sh 'php artisan key:generate || true'
-                        sh './vendor/bin/phpunit || true'
-                    }
-                }
+                sh '''
+                php artisan key:generate || true
+                ./vendor/bin/phpunit || true
+                '''
             }
         }
 
@@ -88,15 +75,15 @@ pipeline {
 
         stage('Build Docker image') {
             steps {
-                sh "docker build -t ${IMAGE_NAME}:${env.BUILD_NUMBER} . || echo 'Docker not found, skipping build'"
+                sh "docker build -t ${IMAGE_NAME}:${env.BUILD_NUMBER} ."
             }
         }
 
         stage('Push image to Nexus') {
             steps {
                 withCredentials([usernamePassword(credentialsId: "${DOCKER_CRED}", usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
-                    sh "echo \$NEXUS_PASS | docker login ${NEXUS_HOST} -u \$NEXUS_USER --password-stdin || echo 'Docker not found, skipping push'"
-                    sh "docker push ${IMAGE_NAME}:${env.BUILD_NUMBER} || echo 'Docker not found, skipping push'"
+                    sh "echo \$NEXUS_PASS | docker login ${NEXUS_HOST} -u \$NEXUS_USER --password-stdin"
+                    sh "docker push ${IMAGE_NAME}:${env.BUILD_NUMBER}"
                 }
             }
         }
@@ -104,7 +91,7 @@ pipeline {
 
     post {
         always {
-            sh 'docker image prune -f || echo "Docker not found, skipping prune"'
+            sh 'docker image prune -f'
             cleanWs()
         }
         success {
