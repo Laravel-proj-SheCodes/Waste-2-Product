@@ -16,7 +16,7 @@ pipeline {
   stages {
     stage('Checkout') {
       steps {
-        git branch: 'main', url: 'https://github.com/TON_COMPTE/TON_PROJET.git', credentialsId: "${GIT_CRED}"
+        git branch: 'DevOps', url: 'https://github.com/Laravel-proj-SheCodes/Waste-2-Product', credentialsId: "${GIT_CRED}"
       }
     }
 
