@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PostDechetController;
 use App\Http\Controllers\PropositionController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\DashboardController;
 
 
 /** Auth */
@@ -46,7 +47,7 @@ Route::get('/', fn () => redirect()->route('home'));
  |  Backoffice commun
  * ========================= */
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', fn () => view('backoffice.pages.dashboard'))->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('postdechets', PostDechetController::class);
     Route::get('/postdechets/dashboard', [PostDechetController::class, 'dashboard'])
@@ -55,7 +56,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('propositions', PropositionController::class);
     Route::resource('users', UserController::class)->only(['index', 'show']);
     Route::post('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('users.toggleActive');
-
+   Route::get('/admin/profile', [ProfileController::class, 'showBack'])->name('admin.profile.show');
+    Route::post('/admin/profile/update', [ProfileController::class, 'update'])->name('admin.profile.update');
+    Route::post('/admin/profile/update-password', [ProfileController::class, 'updatePassword'])->name('admin.profile.updatePassword');
+    Route::post('/admin/profile/deactivate', [ProfileController::class, 'deactivate'])->name('admin.profile.deactivate');
     // Proposals (transformator)
     //Route::resource('proposition-transformations', PropositionTransformationController::class);
 
