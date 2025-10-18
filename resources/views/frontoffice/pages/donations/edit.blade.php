@@ -13,7 +13,7 @@
         @endif
 
         <div class="card shadow-sm p-4" style="max-width: 600px; margin: auto; border-radius: 12px;">
-            <form action="{{ route('donations.update', $donation->id) }}" method="POST">
+            <form action="{{ route('donate.update', $donation) }}" method="POST"> <!-- Changed to 'donate.update' -->
                 @csrf
                 @method('PUT')
                 <div class="mb-3">

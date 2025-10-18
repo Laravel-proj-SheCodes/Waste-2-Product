@@ -221,7 +221,17 @@ Route::prefix('waste-posts')->name('front.waste-posts.')->group(function () {
  |  Donation
  * ========================= */
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::resource('donations', DonationController::class);
+    // Backoffice routes
+    Route::get('/donations/export-pdf', [DonationController::class, 'exportPdf'])->name('donations.exportPdf');
+    Route::resource('donations', DonationController::class)->names([
+        'index' => 'donations.index',
+        'create' => 'donations.create',
+        'store' => 'donations.store',
+        'show' => 'donations.show',
+        'edit' => 'donations.backedit', // Renamed to avoid conflict
+        'update' => 'donations.backupdate', // Renamed
+        'destroy' => 'donations.destroy',
+    ]);
     Route::get('mes-donations', [DonationController::class, 'myDonationsFront'])->name('mes-donations');
     Route::get('donations/{donation}/requests', [DonationController::class, 'showRequests'])->name('donations.showRequests');
     Route::post('donations/{donation}/request', [DonationController::class, 'requestDonation'])->name('donations.request');
@@ -231,15 +241,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // Frontoffice donation routes
- // Frontoffice routes
-    Route::get('/donate', [DonationController::class, 'frontLanding'])->name('donate.donationpage');
-    Route::get('/donate/create', [DonationController::class, 'frontCreate'])->name('donate.create');
-    Route::get('/donate/thankyou', [DonationController::class, 'frontThankyou'])->name('donate.thankyou');
-    Route::post('/donate/{donation}/take', [DonationController::class, 'takeDonation'])->name('donate.take');
-    Route::get('/donate/{donation}', [DonationController::class, 'show'])->name('donate.show');
-    Route::get('/donate/{donation}/edit', [DonationController::class, 'edit'])->name('donate.edit');
-    Route::get('/donate/{donation}/requests', [DonationController::class, 'showRequests'])->name('donate.showRequests');
-
+Route::get('/donate', [DonationController::class, 'frontLanding'])->name('donate.donationpage');
+Route::get('/donate/create', [DonationController::class, 'frontCreate'])->name('donate.create');
+Route::get('/donate/thankyou', [DonationController::class, 'frontThankyou'])->name('donate.thankyou');
+Route::post('/donate/{donation}/take', [DonationController::class, 'takeDonation'])->name('donate.take');
+Route::get('/donate/{donation}', [DonationController::class, 'show'])->name('donate.show');
+Route::get('/donate/{donation}/edit', [DonationController::class, 'edit'])->name('donate.edit'); // Frontoffice edit
+Route::put('/donate/{donation}', [DonationController::class, 'updatefront'])->name('donate.update'); // Frontoffice update
+Route::get('/donate/{donation}/requests', [DonationController::class, 'showRequests'])->name('donate.showRequests');
     
 /* =========================
  |  Propositions – Frontoffice

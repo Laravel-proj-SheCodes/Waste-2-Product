@@ -37,7 +37,8 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('donations.update', $donation) }}" method="POST" class="needs-validation" novalidate>
+                    <!-- Updated form action to use donations.backupdate route for backoffice updates -->
+                    <form action="{{ route('donations.backupdate', $donation) }}" method="POST" class="needs-validation" novalidate>
                         @csrf
                         @method('PUT')
 
@@ -164,7 +165,6 @@
                                         <option value="taken" {{ old('status', $donation->status) == 'taken' ? 'selected' : '' }}>
                                             <i class="fas fa-flag-checkered"></i> taken
                                         </option>
-
                                     </select>
                                     @error('status')
                                         <div class="invalid-feedback">{{ $message }}</div>

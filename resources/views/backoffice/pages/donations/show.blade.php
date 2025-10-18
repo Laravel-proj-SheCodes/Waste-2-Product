@@ -95,7 +95,7 @@
                         <div class="row mt-5">
                             <div class="col-12">
                                 <div class="d-flex justify-content-end align-items-center">
-                                    <a href="{{ route('donations.edit', $donation) }}" 
+                                    <a href="{{ route('donations.backedit', $donation) }}" 
                                        class="btn btn-outline-warning btn-lg px-4 me-2" 
                                        data-toggle="tooltip" 
                                        data-original-title="Edit Donation">

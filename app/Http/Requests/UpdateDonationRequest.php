@@ -12,8 +12,7 @@ class UpdateDonationRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $donation = $this->route('donation');
-        return Auth::check() && $donation->user_id === Auth::id();
+        return true;
     }
 
     /**

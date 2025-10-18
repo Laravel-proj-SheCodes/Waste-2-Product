@@ -43,7 +43,7 @@
                                 </div>
                             @endif
 
-                            <form action="{{ route('donations.store') }}" method="POST" id="donationForm">
+                            <form action="{{ route('donations.store') }}" method="POST" id="donationForm" novalidate>
                                 @csrf
                                 <input type="hidden" name="from_front" value="1">
 
