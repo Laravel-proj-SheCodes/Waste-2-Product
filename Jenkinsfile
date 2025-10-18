@@ -5,8 +5,8 @@ pipeline {
         GIT_CRED = 'GIT_CREDENTIALS_ID'
         SONAR_TOKEN = 'SONAR_TOKEN_ID'
         DOCKER_CRED = 'DOCKER_CREDENTIALS_ID'
-        NEXUS_HOST = 'localhost:5000'
-        IMAGE_NAME = "${NEXUS_HOST}/waste2product-laravel"
+        NEXUS_HOST = 'localhost:8081'
+        IMAGE_NAME = "${NEXUS_HOST}/repository/docker-hosted/waste2product-laravel"  // 🔥 Ajout du repository
     }
 
     stages {
