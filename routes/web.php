@@ -49,6 +49,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', fn () => view('backoffice.pages.dashboard'))->name('dashboard');
 
     Route::resource('postdechets', PostDechetController::class);
+    Route::get('/postdechets/dashboard', [PostDechetController::class, 'dashboard'])
+    ->name('postdechets.dashboard');
+
     Route::resource('propositions', PropositionController::class);
     Route::resource('users', UserController::class)->only(['index', 'show']);
     Route::post('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('users.toggleActive');
