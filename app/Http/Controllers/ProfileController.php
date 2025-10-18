@@ -65,4 +65,17 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
         return redirect()->route('login')->with('success', 'Votre compte a été désactivé.');
     }
+
+    public function showBack()
+{
+    $user = Auth::user();
+
+    // Optionnel : protège l’accès si non-admin
+    if (method_exists($user, 'isAdmin') && !$user->isAdmin()) {
+        abort(403);
+    }
+
+    // Vue backoffice (différente du front)
+    return view('backoffice.pages.users.admin-profile', compact('user'));
+}
 }
