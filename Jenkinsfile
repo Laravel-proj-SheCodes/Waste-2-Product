@@ -19,14 +19,15 @@ pipeline {
         stage('Prepare') {
             steps {
                 echo "Preparing workspace..."
-                sh 'php -v || echo "PHP not found in Jenkins container!"'
+                sh 'php -v'
             }
         }
 
         stage('Install dependencies') {
             steps {
                 sh '''
-                apt-get update && apt-get install -y unzip git curl libzip-dev || true
+                apt-get update && \
+                apt-get install -y php-cli php-xml php-mbstring php-curl php-zip unzip git curl libzip-dev || true
                 composer install --no-interaction --prefer-dist --optimize-autoloader
                 '''
             }
@@ -48,7 +49,7 @@ pipeline {
         stage('Migrate & Tests') {
             steps {
                 sh '''
-                php artisan key:generate || true
+                php artisan key:generate
                 ./vendor/bin/phpunit || true
                 '''
             }
@@ -67,7 +68,7 @@ pipeline {
                     sonar.sources=app,resources,routes
                     sonar.language=php
                     EOF
-                    sonar-scanner -Dsonar.login=${SONAR_TOKEN} || true
+                    sonar-scanner -Dsonar.login=${SONAR_TOKEN}
                     '''
                 }
             }
@@ -94,11 +95,7 @@ pipeline {
             sh 'docker image prune -f'
             cleanWs()
         }
-        success {
-            echo "Pipeline succeeded!"
-        }
-        failure {
-            echo "Pipeline failed!"
-        }
+        success { echo "Pipeline succeeded!" }
+        failure { echo "Pipeline failed!" }
     }
 }
