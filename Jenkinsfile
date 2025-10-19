@@ -2,13 +2,8 @@ pipeline {
     agent any
 
     environment {
-        APP_NAME = "waste2product"
-        DB_HOST = "mysql-laravel"
-        DB_DATABASE = "laravel"
-        DB_USERNAME = "root"
-        DB_PASSWORD = "root"
+        IMAGE_NAME = "mounambr/waste2product-laravel"
         DOCKER_CRED = "DOCKER_CREDENTIALS_ID"
-        IMAGE_NAME = "waste2product-laravel"
     }
 
     stages {
@@ -29,6 +24,8 @@ pipeline {
         stage('Run Container') {
             steps {
                 script {
+                    // Supprime l'ancien conteneur si existe
+                    sh "docker rm -f laravel_app || true"
                     sh "docker run -d -p 8088:80 --name laravel_app ${IMAGE_NAME}:latest"
                 }
             }
@@ -38,6 +35,16 @@ pipeline {
             steps {
                 sh "docker exec laravel_app php artisan migrate --force"
                 sh "docker exec laravel_app php artisan config:cache"
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withDockerRegistry([credentialsId: "${DOCKER_CRED}", url: "https://index.docker.io/v1/"]) {
+                    script {
+                        docker.image("${IMAGE_NAME}:latest").push()
+                    }
+                }
             }
         }
     }
