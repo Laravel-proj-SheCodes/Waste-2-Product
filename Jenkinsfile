@@ -19,14 +19,15 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    // Supprimer l'ancien conteneur s'il existe
+                    // Supprimer l'ancien conteneur s'il existe déjà
                     sh '''
                     if [ $(docker ps -aq -f name=test_laravel) ]; then
                         docker rm -f test_laravel
                     fi
                     '''
-                    // Lancer le nouveau conteneur
-                    sh 'docker run -d -p 8030:80 --name test_laravel waste2product-laravel:latest'
+
+                    // Lancer le nouveau conteneur sur le port 8030
+                    sh 'docker run -d -p 8030:8000 --name test_laravel waste2product-laravel:latest'
                 }
             }
         }
@@ -34,10 +35,11 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline terminé avec succès ! L\'application tourne sur http://localhost:8030'
+            echo '✅ Pipeline terminé avec succès !'
+            echo '🌐 Application disponible sur : http://localhost:8030'
         }
         failure {
-            echo 'La pipeline a échoué.'
+            echo '❌ La pipeline a échoué.'
         }
     }
 }
