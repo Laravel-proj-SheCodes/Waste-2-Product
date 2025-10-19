@@ -2,9 +2,9 @@
 
 @section('content')
 <div class="container py-4">
-    <div class="card border-0 shadow-sm">
+    <div class="card shadow-sm">
         <div class="card-header bg-white">
-            <h5 class="mb-0">Détails Produit #{{ $produitTransforme->id }}</h5>
+            <h5>Détails Produit #{{ $produitTransforme->id }}</h5>
         </div>
         <div class="card-body">
             <dl class="row mb-0">
@@ -25,6 +25,15 @@
 
                 <dt class="col-sm-3">Prix Vente</dt>
                 <dd class="col-sm-9">{{ $produitTransforme->prix_vente ?? '—' }}</dd>
+
+                <dt class="col-sm-3">Photo</dt>
+                <dd class="col-sm-9">
+                    @if($produitTransforme->photo)
+                        <img src="{{ asset('storage/'.$produitTransforme->photo) }}" alt="Photo" class="img-thumbnail" style="max-width:150px;">
+                    @else
+                        —
+                    @endif
+                </dd>
             </dl>
 
             <div class="mt-4">
