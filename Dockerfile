@@ -1,21 +1,23 @@
-# Image PHP officielle avec extensions
 FROM php:8.2-fpm
 
-# Installer les dépendances système
+# Installer les extensions nécessaires
 RUN apt-get update && apt-get install -y \
-    git curl libpng-dev libonig-dev libxml2-dev zip unzip && \
-    docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+    git curl libpng-dev libonig-dev libxml2-dev zip unzip nginx supervisor \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-# Installer Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Copier les fichiers du projet
+# Copier le projet Laravel
 WORKDIR /var/www/html
 COPY . .
 
-# Donner les bons droits
+# Config Nginx
+COPY docker/nginx.conf /etc/nginx/sites-available/default
+
+# Permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage
 
-# Lancer PHP-FPM
-CMD ["php-fpm"]
+# Supervisord pour lancer Nginx + PHP-FPM
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+EXPOSE 80
+CMD ["/usr/bin/supervisord"]
