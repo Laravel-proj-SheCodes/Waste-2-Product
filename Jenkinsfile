@@ -2,13 +2,19 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "mounambr/waste2product-laravel"
+        APP_NAME = "waste2product"
+        DB_HOST = "mysql-laravel"
+        DB_DATABASE = "laravel"
+        DB_USERNAME = "root"
+        DB_PASSWORD = "root"
+        DOCKER_CRED = "DOCKER_CREDENTIALS_ID"
+        IMAGE_NAME = "waste2product-laravel"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/Laravel-proj-SheCodes/Waste-2-Product.git'
+                git branch: 'DevOps', url: 'https://github.com/Laravel-proj-SheCodes/Waste-2-Product'
             }
         }
 
@@ -20,14 +26,25 @@ pipeline {
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Run Container') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'DOCKER_CREDENTIALS_ID') {
-                        docker.image("${IMAGE_NAME}:latest").push()
-                    }
+                    sh "docker run -d -p 8088:80 --name laravel_app ${IMAGE_NAME}:latest"
                 }
             }
+        }
+
+        stage('Artisan Commands') {
+            steps {
+                sh "docker exec laravel_app php artisan migrate --force"
+                sh "docker exec laravel_app php artisan config:cache"
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline finished"
         }
     }
 }
