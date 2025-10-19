@@ -21,12 +21,12 @@ pipeline {
                 script {
                     // Stopper d'anciens conteneurs
                     sh '''
-                    docker compose -f docker-compose.cicd.yml down || true
-                    docker system prune -f || true
+                    docker-compose -f docker-compose.cicd.yml down || true
+                    docker system prune -f -f || true
                     '''
 
                     // Lancer le nouveau setup
-                    sh 'docker compose -f docker-compose.cicd.yml up -d --build'
+                    sh 'docker-compose -f docker-compose.cicd.yml up -d --build'
                 }
             }
         }
