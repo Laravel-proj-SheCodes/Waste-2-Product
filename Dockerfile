@@ -16,6 +16,8 @@ WORKDIR /var/www/html
 COPY . .
 
 # Installer les dépendances Laravel
+RUN git config --global --add safe.directory /var/www/html
+
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
 # Donner les bons droits à Laravel
