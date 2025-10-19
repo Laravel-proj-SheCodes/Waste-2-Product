@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        MYSQL_PASSWORD = "root"
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -20,48 +16,17 @@ pipeline {
             }
         }
 
-        stage('Run Docker Compose') {
+        stage('Run Docker Compose (CI/CD)') {
             steps {
                 script {
+                    // Stopper d'anciens conteneurs
                     sh '''
                     docker-compose -f docker-compose.cicd.yml down || true
                     docker system prune -f -f || true
-                    docker-compose -f docker-compose.cicd.yml up -d --build
-                    '''
-                }
-            }
-        }
-
-        stage('Prepare Laravel') {
-            steps {
-                script {
-                    // Installer MySQL client dans le conteneur Laravel
-                    sh 'docker exec laravel_cicd bash -c "apt-get update && apt-get install -y default-mysql-client"'
-
-                    // Attendre que MySQL soit prêt
-                    sh '''
-                    docker exec laravel_cicd bash -c "
-                        until mysqladmin ping -h mysql-cicd --silent; do
-                            echo 'Waiting for MySQL...'
-                            sleep 2
-                        done
-                    "
                     '''
 
-                    // Exécuter les migrations
-                    sh 'docker exec laravel_cicd bash -c "php artisan migrate --force"'
-                }
-            }
-        }
-
-        stage('Build Frontend') {
-            steps {
-                script {
-                    // Installer Node.js et npm dans le conteneur Laravel
-                    sh 'docker exec laravel_cicd bash -c "apt-get update && apt-get install -y nodejs npm"'
-
-                    // Installer dépendances npm et builder le front
-                    sh 'docker exec laravel_cicd bash -c "npm install && npm run build"'
+                    // Lancer le nouveau setup
+                    sh 'docker-compose -f docker-compose.cicd.yml up -d --build'
                 }
             }
         }
