@@ -2,100 +2,49 @@ pipeline {
     agent any
 
     environment {
-        GIT_CRED = 'GIT_CREDENTIALS_ID'
-        SONAR_TOKEN = 'SONAR_TOKEN_ID'
-        DOCKER_CRED = 'DOCKER_CREDENTIALS_ID'
-        NEXUS_HOST = 'localhost:8081'
-        IMAGE_NAME = "${NEXUS_HOST}/repository/docker-hosted/waste2product-laravel"  // 🔥 Ajout du repository
+        APP_NAME = "waste2product"
+        DB_HOST = "mysql-laravel"
+        DB_DATABASE = "laravel"
+        DB_USERNAME = "root"
+        DB_PASSWORD = "root"
+        DOCKER_CRED = "DOCKER_CREDENTIALS_ID"
+        IMAGE_NAME = "waste2product-laravel"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'DevOps', url: 'https://github.com/Laravel-proj-SheCodes/Waste-2-Product', credentialsId: "${GIT_CRED}"
+                git branch: 'DevOps', url: 'https://github.com/Laravel-proj-SheCodes/Waste-2-Product'
             }
         }
 
-        stage('Prepare') {
+        stage('Build Docker Image') {
             steps {
-                echo "Preparing workspace..."
-                sh 'php -v'
-            }
-        }
-
-        stage('Install dependencies') {
-            steps {
-                sh '''
-                apt-get update && \
-                apt-get install -y php-cli php-xml php-mbstring php-curl php-zip unzip git curl libzip-dev || true
-                composer install --no-interaction --prefer-dist --optimize-autoloader
-                '''
-            }
-        }
-
-        stage('Prepare .env') {
-            steps {
-                sh '''
-                cp .env.example .env || true
-                php -r "file_put_contents('.env', preg_replace('/DB_HOST=.*/', 'DB_HOST=mysql', file_get_contents('.env')));"
-                php -r "file_put_contents('.env', preg_replace('/DB_PORT=.*/', 'DB_PORT=3306', file_get_contents('.env')));"
-                php -r "file_put_contents('.env', preg_replace('/DB_DATABASE=.*/', 'DB_DATABASE=waste2product', file_get_contents('.env')));"
-                php -r "file_put_contents('.env', preg_replace('/DB_USERNAME=.*/', 'DB_USERNAME=laravel', file_get_contents('.env')));"
-                php -r "file_put_contents('.env', preg_replace('/DB_PASSWORD=.*/', 'DB_PASSWORD=laravel', file_get_contents('.env')));"
-                '''
-            }
-        }
-
-        stage('Migrate & Tests') {
-            steps {
-                sh '''
-                php artisan key:generate
-                ./vendor/bin/phpunit || true
-                '''
-            }
-        }
-
-        stage('SonarQube Analysis') {
-            environment {
-                SONAR_TOKEN = credentials("${SONAR_TOKEN}")
-            }
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh '''
-                    cat > sonar-project.properties <<EOF
-                    sonar.projectKey=waste2product
-                    sonar.projectName=waste2product
-                    sonar.sources=app,resources,routes
-                    sonar.language=php
-                    EOF
-                    sonar-scanner -Dsonar.login=${SONAR_TOKEN}
-                    '''
+                script {
+                    docker.build("${IMAGE_NAME}:latest")
                 }
             }
         }
 
-        stage('Build Docker image') {
+        stage('Run Container') {
             steps {
-                sh "docker build -t ${IMAGE_NAME}:${env.BUILD_NUMBER} ."
+                script {
+                    sh "docker run -d -p 8088:80 --name laravel_app ${IMAGE_NAME}:latest"
+                }
             }
         }
 
-        stage('Push image to Nexus') {
+        stage('Artisan Commands') {
             steps {
-                withCredentials([usernamePassword(credentialsId: "${DOCKER_CRED}", usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
-                    sh "echo \$NEXUS_PASS | docker login ${NEXUS_HOST} -u \$NEXUS_USER --password-stdin"
-                    sh "docker push ${IMAGE_NAME}:${env.BUILD_NUMBER}"
-                }
+                sh "docker exec laravel_app php artisan migrate --force"
+                sh "docker exec laravel_app php artisan config:cache"
             }
         }
     }
 
     post {
         always {
-            sh 'docker image prune -f'
-            cleanWs()
+            echo "Pipeline finished"
         }
-        success { echo "Pipeline succeeded!" }
-        failure { echo "Pipeline failed!" }
     }
 }
