@@ -16,18 +16,17 @@ pipeline {
             }
         }
 
-        stage('Run Docker Container') {
+        stage('Run Docker Compose (CI/CD)') {
             steps {
                 script {
-                    // Supprimer l'ancien conteneur s'il existe déjà
+                    // Stopper d'anciens conteneurs
                     sh '''
-                    if [ $(docker ps -aq -f name=test_laravel) ]; then
-                        docker rm -f test_laravel
-                    fi
+                    docker-compose -f docker-compose.cicd.yml down || true
+                    docker system prune -f || true
                     '''
 
-                    // Lancer le nouveau conteneur sur le port 8030
-                    sh 'docker run -d -p 8030:8000 --name test_laravel waste2product-laravel:latest'
+                    // Lancer le nouveau setup
+                    sh 'docker-compose -f docker-compose.cicd.yml up -d --build'
                 }
             }
         }

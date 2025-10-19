@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  mysql-cicd:
+    image: mysql:8.0
+    container_name: mysql-cicd
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: laravel
+    ports:
+      - "3310:3306"
+    volumes:
+      - mysql_cicd_data:/var/lib/mysql
+
+  laravel_cicd:
+    build: .
+    container_name: laravel_cicd
+    restart: unless-stopped
+    ports:
+      - "8030:8000"
+    depends_on:
+      - mysql-cicd
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+      APP_KEY: base64:MPJ+58oBeh5/XYsj8Toy879h6311dIS1P15vwhqh6Ss=
+      DB_CONNECTION: mysql
+      DB_HOST: mysql-cicd
+      DB_PORT: 3306
+      DB_DATABASE: laravel
+      DB_USERNAME: root
+      DB_PASSWORD: root
+
+volumes:
+  mysql_cicd_data:
