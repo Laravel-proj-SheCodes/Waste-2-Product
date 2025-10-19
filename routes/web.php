@@ -309,6 +309,7 @@ Route::resource('processus-transformations', ProcessusTransformationController::
 // Products
 Route::resource('produit-transformes', ProduitTransformeController::class);
 
+Route::post('/eco-bot', [EcoBotGroqController::class, 'chat'])->name('eco-bot.chat');
 // front routes 
 // TRANSFORMATION PROPOSITIONS - FRONTOFFICE (CHANGED ROUTE NAMES TO AVOID COLLISION)
 
