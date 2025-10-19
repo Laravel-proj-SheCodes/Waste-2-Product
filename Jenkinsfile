@@ -41,7 +41,7 @@ pipeline {
                     // Attendre que MySQL soit prêt
                     sh '''
                     docker exec laravel_cicd bash -c "
-                        until mysql -h mysql-cicd -u root -proot --ssl-mode=DISABLED -e 'SELECT 1'; do
+                        until mysql -h mysql-cicd -u root -proot --skip-ssl -e 'SELECT 1'; do
                             echo 'Waiting for MySQL...'
                             sleep 3
                         done
