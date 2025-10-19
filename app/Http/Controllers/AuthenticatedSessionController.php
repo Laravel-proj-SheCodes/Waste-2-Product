@@ -93,10 +93,12 @@ class AuthenticatedSessionController extends Controller
         ]);
 
         // 3) Envoyer l'email de vérification (via événement Laravel)
-        event(new Registered($user));
+       // event(new Registered($user));
 
         // 4) Rediriger vers login avec message (sans connecter l'utilisateur)
-        return redirect()->route('login')->with('status', 'Un lien de vérification a été envoyé à votre email. Veuillez vérifier avant de vous connecter.');
+        //return redirect()->route('login')->with('status', 'Un lien de vérification a été envoyé à votre email. Veuillez vérifier avant de vous connecter.');
+        return redirect()->route('login')->with('status', 'Votre compte a été créé avec succès. Vous pouvez vous connecter.');
+
     }
 
     /**
