@@ -12,6 +12,229 @@
                 </a>
             </div>
 <br>
+{{-- Analytics Dashboard Section --}}
+<div class="row mb-4">
+    {{-- Total Orders --}}
+    <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-sm mb-0 text-uppercase font-weight-bold text-secondary">Total Orders</p>
+                        <h5 class="font-weight-bolder text-dark mb-0">
+                            {{ $analytics['total_orders'] }}
+                        </h5>
+                        <p class="mb-0 text-xs">
+                            <span class="text-success font-weight-bold">
+                                {{ $analytics['delivered_orders'] }}
+                            </span> delivered
+                        </p>
+                    </div>
+                    <div class="icon icon-shape bg-gradient-primary text-center rounded-circle shadow">
+                        <i class="material-symbols-rounded text-white">shopping_cart</i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Total Revenue --}}
+    <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-sm mb-0 text-uppercase font-weight-bold text-secondary">Total Revenue</p>
+                        <h5 class="font-weight-bolder text-success mb-0">
+                            {{ number_format($analytics['total_revenue'], 2) }} €
+                        </h5>
+                        <p class="mb-0 text-xs">
+                            <span class="text-secondary font-weight-bold">
+                                Avg: {{ number_format($analytics['avg_revenue'], 2) }} €
+                            </span>
+                        </p>
+                    </div>
+                    <div class="icon icon-shape bg-gradient-success text-center rounded-circle shadow">
+                        <i class="material-symbols-rounded text-white">payments</i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Total Quantity Sold --}}
+    <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-sm mb-0 text-uppercase font-weight-bold text-secondary">Total Quantity</p>
+                        <h5 class="font-weight-bolder text-info mb-0">
+                            {{ $analytics['total_quantity'] }}
+                        </h5>
+                        <p class="mb-0 text-xs">
+                            <span class="text-secondary font-weight-bold">
+                                {{ number_format($analytics['avg_quantity'], 1) }} avg/order
+                            </span>
+                        </p>
+                    </div>
+                    <div class="icon icon-shape bg-gradient-info text-center rounded-circle shadow">
+                        <i class="material-symbols-rounded text-white">inventory</i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Pending Orders --}}
+    <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-sm mb-0 text-uppercase font-weight-bold text-secondary">Pending Orders</p>
+                        <h5 class="font-weight-bolder text-warning mb-0">
+                            {{ $analytics['pending_orders'] }}
+                        </h5>
+                        <p class="mb-0 text-xs">
+                            <span class="text-danger font-weight-bold">
+                                {{ $analytics['cancelled_orders'] }}
+                            </span> cancelled
+                        </p>
+                    </div>
+                    <div class="icon icon-shape bg-gradient-warning text-center rounded-circle shadow">
+                        <i class="material-symbols-rounded text-white">schedule</i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Charts Row --}}
+<div class="row mb-4">
+    {{-- Order Status Distribution --}}
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header pb-0">
+                <h6>Order Status Distribution</h6>
+                <p class="text-sm mb-0">Current orders by status</p>
+            </div>
+            <div class="card-body">
+                <div class="chart">
+                    <canvas id="statusChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Revenue Over Time --}}
+    <div class="col-lg-8 col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header pb-0">
+                <h6>Revenue Trend</h6>
+                <p class="text-sm mb-0">Daily revenue for the last 7 days</p>
+            </div>
+            <div class="card-body">
+                <div class="chart">
+                    <canvas id="revenueChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Top Buyers and Recent Activity Row --}}
+<div class="row mb-4">
+    <div class="col-lg-6 col-md-12 mb-4">
+        <div class="card h-100">
+            <div class="card-header pb-0">
+                <h6>Top Buyers</h6>
+                <p class="text-sm mb-0">Customers with highest order values</p>
+            </div>
+            <div class="card-body p-3">
+                <ul class="list-group">
+                    @forelse($analytics['top_buyers'] as $buyerData)
+                        <li class="list-group-item border-0 d-flex justify-content-between ps-0 mb-2 border-radius-lg">
+                            <div class="d-flex align-items-center">
+                                <div class="icon icon-shape icon-sm me-3 bg-gradient-dark shadow text-center">
+                                    <i class="material-symbols-rounded text-white opacity-10">person</i>
+                                </div>
+                                <div class="d-flex flex-column">
+                                    <h6 class="mb-1 text-dark text-sm">{{ $buyerData['buyer']->name ?? 'N/A' }}</h6>
+                                    <span class="text-xs">{{ $buyerData['orders'] }} order(s)</span>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center text-sm font-weight-bold">
+                                {{ number_format($buyerData['total'], 2) }} €
+                            </div>
+                        </li>
+                    @empty
+                        <li class="list-group-item border-0 text-center text-secondary">
+                            No buyers yet
+                        </li>
+                    @endforelse
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    {{-- Order Timeline --}}
+    <div class="col-lg-6 col-md-12 mb-4">
+        <div class="card h-100">
+            <div class="card-header pb-0">
+                <h6>Recent Activity</h6>
+                <p class="text-sm mb-0">Latest order updates</p>
+            </div>
+            <div class="card-body p-3">
+                <div class="timeline timeline-one-side">
+                    @forelse($annonce->commandes->sortByDesc('created_at')->take(5) as $commande)
+                        @php
+                            $statusColor = match($commande->statut_commande) {
+                                'livree' => 'success',
+                                'annulee' => 'danger',
+                                'expediee' => 'primary',
+                                'en_preparation' => 'info',
+                                default => 'warning'
+                            };
+                            
+                            $statusIcon = match($commande->statut_commande) {
+                                'livree' => 'check_circle',
+                                'annulee' => 'cancel',
+                                'expediee' => 'local_shipping',
+                                'en_preparation' => 'inventory_2',
+                                default => 'schedule'
+                            };
+                        @endphp
+                        <div class="timeline-block mb-3">
+                            <span class="timeline-step">
+                                <i class="material-symbols-rounded text-{{ $statusColor }} text-gradient">
+                                    {{ $statusIcon }}
+                                </i>
+                            </span>
+                            <div class="timeline-content">
+                                <h6 class="text-dark text-sm font-weight-bold mb-0">
+                                    Order #{{ $commande->id }} - {{ ucfirst(str_replace('_', ' ', $commande->statut_commande)) }}
+                                </h6>
+                                <p class="text-secondary font-weight-bold text-xs mt-1 mb-0">
+                                    {{ $commande->acheteur->name ?? 'N/A' }} • {{ number_format($commande->prix_total, 2) }} €
+                                </p>
+                                <p class="text-secondary font-weight-bold text-xs mb-0">
+                                    {{ $commande->created_at->diffForHumans() }}
+                                </p>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center text-secondary">
+                            <p class="text-sm mb-0">No recent activity</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
             <div class="card mb-4">
                 <div class="card-header p-0 position-relative mt-n4 mx-3 z-index-2">
                     <div class="bg-gradient-dark shadow-dark border-radius-lg pt-4 pb-3">
@@ -59,6 +282,14 @@
                     </div>
                 </div>
                 <div class="card-body px-0 pb-2">
+                    <div class="d-flex justify-content-end pe-4 mb-3">
+                     <a href="{{ route('annonces.exportOrders', $annonce->id) }}" 
+                       class="btn btn-sm btn-success">
+                    <i class="material-symbols-rounded me-1">download</i> 
+                           Export Orders CSV
+                          </a>
+                      </div>
+                      
                     <div class="table-responsive p-0">
                         <table class="table align-items-center mb-0">
                             <thead>
@@ -454,5 +685,103 @@ function updatePipeline(currentStatus) {
         }
     });
 }
+// Initialize Charts
+document.addEventListener('DOMContentLoaded', function() {
+    // Status Distribution Chart
+    const statusCtx = document.getElementById('statusChart');
+    if (statusCtx) {
+        const statusData = @json($analytics['status_distribution']);
+        
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Pending', 'Confirmed', 'Preparing', 'Shipped', 'Delivered', 'Cancelled'],
+                datasets: [{
+                    data: [
+                        statusData.en_attente,
+                        statusData.confirmee,
+                        statusData.en_preparation,
+                        statusData.expediee,
+                        statusData.livree,
+                        statusData.annulee
+                    ],
+                    backgroundColor: [
+                        '#fb8c00',
+                        '#66bb6a',
+                        '#29b6f6',
+                        '#5e72e4',
+                        '#43a047',
+                        '#ef5350'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: {
+                                size: 11
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Revenue Chart
+    const revenueCtx = document.getElementById('revenueChart');
+    if (revenueCtx) {
+        const revenueData = @json($analytics['daily_revenue']);
+        const labels = Object.keys(revenueData).slice(-7);
+        const data = Object.values(revenueData).slice(-7);
+        
+        new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: labels.map(date => {
+                    const d = new Date(date);
+                    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                }),
+                datasets: [{
+                    label: 'Revenue (€)',
+                    data: data,
+                    borderColor: '#43a047',
+                    backgroundColor: 'rgba(67, 160, 71, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#43a047',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '€' + value.toFixed(2);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
 </script>
 @endsection

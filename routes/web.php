@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PostDechetController;
 use App\Http\Controllers\PropositionController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\DashboardController;
 
 
 /** Auth */
@@ -34,6 +35,13 @@ use App\Http\Controllers\EcoBotGroqController;
 use App\Http\Controllers\TwoFactorController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
+//trnasformation
+use App\Http\Controllers\PropositionTransformationController;
+use App\Http\Controllers\ProcessusTransformationController;
+use App\Http\Controllers\ProduitTransformeController;
+
+
+
 
 /* =========================
  |  Pages simples
@@ -46,21 +54,20 @@ Route::get('/', fn () => redirect()->route('home'));
  |  Backoffice commun
  * ========================= */
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', fn () => view('backoffice.pages.dashboard'))->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('postdechets', PostDechetController::class);
+    Route::get('/postdechets/dashboard', [PostDechetController::class, 'dashboard'])
+    ->name('postdechets.dashboard');
+
     Route::resource('propositions', PropositionController::class);
     Route::resource('users', UserController::class)->only(['index', 'show']);
     Route::post('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('users.toggleActive');
-
-    // Proposals (transformator)
-    //Route::resource('proposition-transformations', PropositionTransformationController::class);
-
-    // Processes
-    //Route::resource('processus-transformations', ProcessusTransformationController::class);
-
-    // Products
-    //Route::resource('produit-transformes', ProduitTransformeController::class);
+   Route::get('/admin/profile', [ProfileController::class, 'showBack'])->name('admin.profile.show');
+    Route::post('/admin/profile/update', [ProfileController::class, 'update'])->name('admin.profile.update');
+    Route::post('/admin/profile/update-password', [ProfileController::class, 'updatePassword'])->name('admin.profile.updatePassword');
+    Route::post('/admin/profile/deactivate', [ProfileController::class, 'deactivate'])->name('admin.profile.deactivate');
+   
 });
 
 /* =========================
@@ -130,12 +137,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/chat/{conversation}/messages', [ChatController::class, 'send'])->name('chat.send');
 });
 
+Route::get('/annonces/{annonce}/export-orders', [AnnonceMarketplaceController::class, 'exportOrders'])
+    ->name('annonces.exportOrders');
 Route::get('/marketplace', function () {
     return view('frontoffice.pages.marketplace.marketplace');
 })->name('marketplace');
 Route::get('/commandes-page', function () {
     return view('frontoffice.pages.commandes.commandes');
 })->name('commandes.page');
+
 
 Route::get('/api/mes-post-dechets', [AnnonceMarketplaceController::class, 'getUserPostDechets'])->name('api.mes-post-dechets');
 //2fa 
@@ -299,10 +309,38 @@ Route::resource('processus-transformations', ProcessusTransformationController::
 // Products
 Route::resource('produit-transformes', ProduitTransformeController::class);
 
-
 Route::post('/eco-bot', [EcoBotGroqController::class, 'chat'])->name('eco-bot.chat');
+// front routes 
+// TRANSFORMATION PROPOSITIONS - FRONTOFFICE (CHANGED ROUTE NAMES TO AVOID COLLISION)
 
+// TRANSFORMATION FRONTOFFICE ROUTES
+Route::prefix('frontoffice')->name('front.transformation.')->middleware(['auth'])->group(function () {
 
+    // ===== PROPOSITIONS =====
+    Route::get('propositions', [PropositionTransformationController::class, 'indexFront'])->name('propositions.index');
+   Route::get('propositions/create', [PropositionTransformationController::class, 'createFront'])->name('propositions.create');
+Route::post('propositions', [PropositionTransformationController::class, 'storeFront'])->name('propositions.store');
+    Route::get('propositions/{propositionTransformation}', [PropositionTransformationController::class, 'showFront'])->name('propositions.show');
+    Route::get('propositions/{propositionTransformation}/edit', [PropositionTransformationController::class, 'editFront'])->name('propositions.edit');
+    Route::put('propositions/{propositionTransformation}', [PropositionTransformationController::class, 'updateFront'])->name('propositions.update');
+    Route::delete('propositions/{propositionTransformation}', [PropositionTransformationController::class, 'destroyFront'])->name('propositions.destroy');
+
+    // ===== PROCESSUS =====
+    Route::get('processus', [ProcessusTransformationController::class, 'indexFront'])->name('processus.index');
+    Route::get('processus/{processusTransformation}', [ProcessusTransformationController::class, 'showFront'])->name('processus.show');
+    Route::get('processus/{processusTransformation}/edit', [ProcessusTransformationController::class, 'editFront'])->name('processus.edit');
+    Route::put('processus/{processusTransformation}', [ProcessusTransformationController::class, 'updateFront'])->name('processus.update');
+
+    // ===== PRODUITS =====
+    Route::get('produits', [ProduitTransformeController::class, 'indexFront'])->name('produits.index');
+    Route::get('produits/create', [ProduitTransformeController::class, 'createFront'])->name('produits.create');
+    Route::post('produits', [ProduitTransformeController::class, 'storeFront'])->name('produits.store');
+    Route::get('produits/{produitTransforme}', [ProduitTransformeController::class, 'showFront'])->name('produits.show');
+    Route::get('produits/{produitTransforme}/edit', [ProduitTransformeController::class, 'editFront'])->name('produits.edit');
+    Route::put('produits/{produitTransforme}', [ProduitTransformeController::class, 'updateFront'])->name('produits.update');
+    Route::delete('produits/{produitTransforme}', [ProduitTransformeController::class, 'destroyFront'])->name('produits.destroy');
+});
+///  end of transformation routes
 /** Mot de passe oublié / Réinitialisation */
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\ResetPasswordController;

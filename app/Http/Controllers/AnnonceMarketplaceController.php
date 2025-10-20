@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+
 
 class AnnonceMarketplaceController extends Controller
 {
@@ -310,9 +313,95 @@ public function getUserPostDechets(): JsonResponse
 
 public function showCommandes(AnnonceMarketplace $annonce)
 {
-    $annonce->load(['commandes.acheteur', 'commandes.vendeur', 'postDechet']);
+    // Load relationships
+    $annonce->load(['commandes.acheteur', 'postDechet']);
     
-    return view('backoffice.pages.annonces.commandes', compact('annonce'));
+    // Calculate analytics data
+    $analytics = [
+        'total_orders' => $annonce->commandes->count(),
+        'total_revenue' => $annonce->commandes->sum('prix_total'),
+        'avg_revenue' => $annonce->commandes->avg('prix_total') ?? 0,
+        'total_quantity' => $annonce->commandes->sum('quantite'),
+        'avg_quantity' => $annonce->commandes->avg('quantite') ?? 0,
+        'pending_orders' => $annonce->commandes->whereIn('statut_commande', ['en_attente', 'confirmee', 'en_preparation', 'expediee'])->count(),
+        'delivered_orders' => $annonce->commandes->where('statut_commande', 'livree')->count(),
+        'cancelled_orders' => $annonce->commandes->where('statut_commande', 'annulee')->count(),
+        
+        // Status distribution
+        'status_distribution' => [
+            'en_attente' => $annonce->commandes->where('statut_commande', 'en_attente')->count(),
+            'confirmee' => $annonce->commandes->where('statut_commande', 'confirmee')->count(),
+            'en_preparation' => $annonce->commandes->where('statut_commande', 'en_preparation')->count(),
+            'expediee' => $annonce->commandes->where('statut_commande', 'expediee')->count(),
+            'livree' => $annonce->commandes->where('statut_commande', 'livree')->count(),
+            'annulee' => $annonce->commandes->where('statut_commande', 'annulee')->count(),
+        ],
+        
+        // Revenue by day (last 7 days)
+        'daily_revenue' => $annonce->commandes
+            ->where('created_at', '>=', now()->subDays(7))
+            ->groupBy(function($date) {
+                return \Carbon\Carbon::parse($date->created_at)->format('Y-m-d');
+            })
+            ->map(function($day) {
+                return $day->sum('prix_total');
+            }),
+            
+        // Top buyers
+        'top_buyers' => $annonce->commandes->groupBy('acheteur_id')
+            ->map(function($orders) {
+                return [
+                    'buyer' => $orders->first()->acheteur,
+                    'total' => $orders->sum('prix_total'),
+                    'orders' => $orders->count()
+                ];
+            })
+            ->sortByDesc('total')
+            ->take(5),
+    ];
+    
+    return view('backoffice.pages.annonces.commandes', compact('annonce', 'analytics'));
 }
 
+
+public function exportOrders(AnnonceMarketplace $annonce)
+{
+    $annonce->load(['commandes.acheteur']);
+
+    $filename = 'orders_annonce_' . $annonce->id . '_' . now()->format('Ymd_His') . '.csv';
+
+    $response = new StreamedResponse(function() use ($annonce) {
+        $handle = fopen('php://output', 'w');
+
+        // En-têtes du CSV
+        fputcsv($handle, [
+            'Order ID', 'Buyer Name', 'Buyer Email', 
+            'Quantity', 'Total Price (€)', 'Status', 'Date'
+        ]);
+
+        // Lignes des commandes
+        foreach ($annonce->commandes as $commande) {
+            fputcsv($handle, [
+                $commande->id,
+                $commande->acheteur->name ?? 'N/A',
+                $commande->acheteur->email ?? '',
+                $commande->quantite,
+                number_format($commande->prix_total, 2),
+                ucfirst(str_replace('_', ' ', $commande->statut_commande)),
+                $commande->created_at?->format('d/m/Y H:i')
+            ]);
+        }
+
+        fclose($handle);
+    });
+
+    $response->headers->set('Content-Type', 'text/csv');
+    $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+
+    return $response;
 }
+
+
+
+}
+

@@ -17,8 +17,8 @@ class StoreProduitTransformeRequest extends FormRequest
             'processus_id'       => 'required|exists:processus_transformations,id',
             'nom_produit'        => 'required|string|max:255',
             'description'        => 'nullable|string|max:2000',
-            'quantité_produite'  => 'required|integer|min:1',
-            'valeur_ajoutée'     => 'required|numeric|min:0',
+            'quantite_produite'  => 'required|integer|min:1',
+            'valeur_ajoutee'     => 'required|numeric|min:0',
             'prix_vente'         => 'nullable|numeric|min:0',
         ];
     }

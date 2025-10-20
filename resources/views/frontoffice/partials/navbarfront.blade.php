@@ -42,14 +42,41 @@
           @endif
 
           {{-- Transformation --}}
-          @if (Route::has('front.transformations.index'))
-            <li class="nav-item">
-              <a class="nav-link {{ request()->routeIs('front.transformations.*') ? 'active' : '' }}"
-                 href="{{ route('front.transformations.index') }}">
-                Transformation
-              </a>
-            </li>
-          @endif
+            <!-- Transformation Dropdown -->
+  @if (Route::has('front.transformation.propositions.index') || Route::has('front.transformation.processus.index') || Route::has('front.transformation.produits.index'))
+    <li class="nav-item dropdown">
+      <a class="nav-link dropdown-toggle {{ request()->routeIs('front.transformation.*') ? 'active' : '' }}"
+         href="#" id="transformationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        Transformation
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="transformationDropdown">
+        @if (Route::has('front.transformation.propositions.index'))
+          <li>
+            <a class="dropdown-item {{ request()->routeIs('front.transformation.propositions.*') ? 'active' : '' }}"
+               href="{{ route('front.transformation.propositions.index') }}">
+              Proposition
+            </a>
+          </li>
+        @endif
+        @if (Route::has('front.transformation.processus.index'))
+          <li>
+            <a class="dropdown-item {{ request()->routeIs('front.transformation.processus.*') ? 'active' : '' }}"
+               href="{{ route('front.transformation.processus.index') }}">
+              Processus
+            </a>
+          </li>
+        @endif
+        @if (Route::has('front.transformation.produits.index'))
+          <li>
+            <a class="dropdown-item {{ request()->routeIs('front.transformation.produits.*') ? 'active' : '' }}"
+               href="{{ route('front.transformation.produits.index') }}">
+              Produit
+            </a>
+          </li>
+        @endif
+      </ul>
+    </li>
+  @endif
 
           {{-- Marketplace Dropdown --}}
           @if (Route::has('marketplace') || Route::has('commandes.index'))

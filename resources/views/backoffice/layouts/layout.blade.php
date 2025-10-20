@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="apple-touch-icon" sizes="76x76" href="{{ Vite::asset('resources/assets-backoffice/img/apple-icon.png') }}">
     <link rel="icon" type="image/png" href="{{ Vite::asset('resources/assets-backoffice/img/favicon.png') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <title>
         Material Dashboard 3 by Creative Tim
     </title>
@@ -20,6 +21,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
     <!-- CSS Files -->
     @vite(['resources/assets-backoffice/css/material-dashboard.css'])
+    @stack('styles') 
 </head>
 
 <body class="g-sidenav-show bg-gray-100">
@@ -133,7 +135,7 @@
     <!-- Github buttons -->
     <script async defer src="https://buttons.github.io/buttons.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+   @stack('scripts')
 </body>
 
 </html>
