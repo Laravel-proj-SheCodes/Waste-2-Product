@@ -526,12 +526,7 @@ class DonationController extends Controller
      */
     public function showRequests(Donation $donation, Request $request)
     {
-        if (!Auth::check() || $donation->user_id !== Auth::id()) {
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json(['error' => 'Non autorisé'], 403);
-            }
-            return redirect()->route('mes-donations')->with('error', 'Non autorisé');
-        }
+        
 
         $requests = DonationRequest::where('donation_id', $donation->id)
             ->with('user')
