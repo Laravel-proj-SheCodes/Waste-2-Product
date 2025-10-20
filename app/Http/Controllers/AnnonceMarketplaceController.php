@@ -69,7 +69,7 @@ class AnnonceMarketplaceController extends Controller
             $query->orderBy('created_at', 'desc');
         }
 
-        $annonces = $query->paginate(10)->withQueryString();
+        $annonces = $query->paginate(4)->withQueryString();
 
         $stats = [
             'total' => AnnonceMarketplace::count(),
