@@ -315,25 +315,7 @@ document.addEventListener('DOMContentLoaded', function() {
 let userAnnonceIds = [];
 let selectedCurrency = 'EUR';
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Load user's waste posts for the dropdown
-    loadUserPostDechets();
-    
-    // Load user's announcements first to get ownership data
-    loadMesAnnonces().then(() => {
-        // Then load all announcements with proper ownership detection
-        loadAllAnnonces();
-    });
-    
-    // Setup form handlers
-    setupFormHandlers();
-    
-    // Setup filter handlers
-    setupFilterHandlers();
-    
-    setupOrderHandlers();
-    setupCurrencySelector();
-});
+
 
 
 function setupFormHandlers() {
