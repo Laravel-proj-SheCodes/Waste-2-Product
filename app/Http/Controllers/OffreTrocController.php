@@ -159,44 +159,43 @@ class OffreTrocController extends Controller
     }
 
     public function storeFront(Request $request, $postId)
-{
-    if (!Auth::check()) {
-        return $request->wantsJson()
-            ? response()->json(['error' => 'Authentification requise'], 401)
-            : redirect()->route('login')->with('error', 'Authentification requise');
+    {
+        if (!Auth::check()) {
+            return $request->wantsJson()
+                ? response()->json(['error' => 'Authentification requise'], 401)
+                : redirect()->route('login')->with('error', 'Authentification requise');
+        }
+
+        $validated = $this->validateOffer($request);
+        $files = $this->handleFiles($request);
+
+        $offre = OffreTroc::create([
+            'categorie' => $validated['categorie'],
+            'quantite' => $validated['quantite'],
+            'unite_mesure' => $validated['unite_mesure'],
+            'etat' => $validated['etat'],
+            'localisation' => $validated['localisation'],
+            'photos' => !empty($files) ? json_encode($files) : null,
+            'description' => $validated['description'],
+            'user_id' => Auth::id(),
+            'post_dechet_id' => $postId,
+            'status' => 'en_attente',
+        ]);
+
+        // ===== LOGIQUE D'ENVOI D'EMAIL =====
+        $post = PostDechet::findOrFail($postId);
+        $owner = $post->user; // Assure-toi que la relation user est définie dans PostDechet
+        if ($owner && $owner->email) {
+            Mail::to($owner->email)->send(new NouvelleOffreTrocMail($offre));
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json($offre->load('user', 'postDechet'), 201);
+        }
+
+        $route = $request->input('from_front') ? 'offres-troc.thankyou' : 'offres-troc.index.front';
+        return redirect()->route($route)->with('success', 'Offre créée avec succès !');
     }
-
-    $validated = $this->validateOffer($request);
-    $files = $this->handleFiles($request);
-
-    $offre = OffreTroc::create([
-        'categorie' => $validated['categorie'],
-        'quantite' => $validated['quantite'],
-        'unite_mesure' => $validated['unite_mesure'],
-        'etat' => $validated['etat'],
-        'localisation' => $validated['localisation'],
-        'photos' => !empty($files) ? json_encode($files) : null,
-        'description' => $validated['description'],
-        'user_id' => Auth::id(),
-        'post_dechet_id' => $postId,
-        'status' => 'en_attente',
-    ]);
-
-    // ===== LOGIQUE D'ENVOI D'EMAIL =====
-    $post = PostDechet::findOrFail($postId);
-    $owner = $post->user; // Assure-toi que la relation user est définie dans PostDechet
-    if ($owner && $owner->email) {
-        Mail::to($owner->email)->send(new NouvelleOffreTrocMail($offre));
-    }
-
-    if ($request->wantsJson()) {
-        return response()->json($offre->load('user', 'postDechet'), 201);
-    }
-
-    $route = $request->input('from_front') ? 'offres-troc.thankyou' : 'offres-troc.index.front';
-    return redirect()->route($route)->with('success', 'Offre créée avec succès !');
-}
-
 
     public function showFront($postId)
     {
@@ -261,75 +260,95 @@ class OffreTrocController extends Controller
             ->with('success', 'Offre supprimée avec succès.');
     }
 
-   public function updateStatutFront(Request $request, $id)
-{
-    $validated = $request->validate(['status' => 'required|in:accepted,rejected,en_attente']);
-    $offre = OffreTroc::findOrFail($id);
-    $post = $offre->postDechet;
+    public function updateStatutFront(Request $request, $id)
+    {
+        $validated = $request->validate(['status' => 'required|in:accepted,rejected,en_attente']);
+        $offre = OffreTroc::findOrFail($id);
+        $post = $offre->postDechet;
 
-    if ($validated['status'] === 'accepted') {
+        if ($validated['status'] === 'accepted') {
+            // Rejeter les autres offres
+            $otherOffres = OffreTroc::where('post_dechet_id', $post->id)
+                ->where('id', '!=', $id)
+                ->get();
 
-        // Rejeter les autres offres
-        $otherOffres = OffreTroc::where('post_dechet_id', $post->id)
-            ->where('id', '!=', $id)
-            ->get();
+            foreach ($otherOffres as $o) {
+                $o->update(['status' => 'rejected']);
 
-        foreach ($otherOffres as $o) {
-            $o->update(['status' => 'rejected']);
+                if ($o->user && $o->user->email) {
+                    \Mail::to($o->user->email)->send(new \App\Mail\OffreStatusMail($o, $post, 'rejected'));
+                }
+            }
 
-            if ($o->user && $o->user->email) {
-                \Mail::to($o->user->email)->send(new \App\Mail\OffreStatusMail($o, $post, 'rejected'));
+            // Mettre à jour l'offre acceptée
+            $oldStatus = $offre->status;
+            $offre->update(['status' => 'accepted']);
+
+            // Créer la transaction si ce n'était pas déjà accepté
+            if ($oldStatus !== 'accepted') {
+                TransactionTroc::create([
+                    'offre_troc_id' => $offre->id,
+                    'utilisateur_acceptant_id' => $post->user_id,
+                    'date_accord' => now(),
+                    'statut_livraison' => 'en_cours',
+                ]);
+            }
+
+            // Envoyer email d'acceptation
+            if ($offre->user && $offre->user->email) {
+                \Mail::to($offre->user->email)->send(new \App\Mail\OffreStatusMail($offre, $post, 'accepted'));
+            }
+        } else {
+            // Offre rejetée ou en attente
+            $offre->update(['status' => $validated['status']]);
+
+            if ($offre->user && $offre->user->email) {
+                \Mail::to($offre->user->email)->send(new \App\Mail\OffreStatusMail($offre, $post, $validated['status']));
             }
         }
 
-        // Mettre à jour l'offre acceptée
-        $oldStatus = $offre->status;
-        $offre->update(['status' => 'accepted']);
-
-        // Créer la transaction si ce n'était pas déjà accepté
-        if ($oldStatus !== 'accepted') {
-            TransactionTroc::create([
-                'offre_troc_id' => $offre->id,
-                'utilisateur_acceptant_id' => $post->user_id,
-                'date_accord' => now(),
-                'statut_livraison' => 'en_cours',
-            ]);
-        }
-
-        // Envoyer email d'acceptation
-        if ($offre->user && $offre->user->email) {
-            \Mail::to($offre->user->email)->send(new \App\Mail\OffreStatusMail($offre, $post, 'accepted'));
-        }
-
-    } else {
-        // Offre rejetée ou en attente
-        $offre->update(['status' => $validated['status']]);
-
-        if ($offre->user && $offre->user->email) {
-            \Mail::to($offre->user->email)->send(new \App\Mail\OffreStatusMail($offre, $post, $validated['status']));
-        }
+        return redirect()->back()->with('success', 'Statut mis à jour et emails envoyés.');
     }
-
-    return redirect()->back()->with('success', 'Statut mis à jour et emails envoyés.');
-}
-
 
     /* ==================== HELPER FUNCTIONS ==================== */
 
     private function validateOffer(Request $request, $front = false)
     {
         $rules = [
-            'categorie' => 'required|string',
-            'quantite' => 'required|integer|min:1',
-            'unite_mesure' => 'required|string',
-            'etat' => 'required|string',
-            'localisation' => 'required|string',
-            'description' => 'required|string|max:500',
-            'photos' => 'nullable|array',
-            'photos.*' => 'image|max:2048',
+            'categorie' => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z0-9\sàáâãäåçèéêëìíîïòóôõöùúûüýÿ\-]+$/'],
+            'quantite' => ['required', 'integer', 'min:1', 'max:10000'],
+            'unite_mesure' => ['required', 'string', 'in:kg,litre,unité,tonne,m3'],
+            'etat' => ['required', 'string', 'in:neuf,bon,usagé,à_réparer'],
+            'localisation' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9\s,\-àáâãäåçèéêëìíîïòóôõöùúûüýÿ]+$/'],
+            'description' => ['required', 'string', 'max:500', 'regex:/^[a-zA-Z0-9\s.,!?\-àáâãäåçèéêëìíîïòóôõöùúûüýÿ]+$/'],
+            'photos' => [$front ? 'nullable' : 'required', 'array', 'max:5'],
         ];
 
-        return $request->validate($rules);
+        $messages = [
+            'categorie.required' => 'La catégorie est obligatoire.',
+            'categorie.regex' => 'La catégorie contient des caractères non autorisés.',
+            'quantite.required' => 'La quantité est obligatoire.',
+            'quantite.integer' => 'La quantité doit être un nombre entier.',
+            'quantite.min' => 'La quantité doit être au moins 1.',
+            'quantite.max' => 'La quantité ne peut pas dépasser 10 000.',
+            'unite_mesure.required' => 'L\'unité de mesure est obligatoire.',
+            'unite_mesure.in' => 'L\'unité de mesure doit être parmi : kg, litre, unité, tonne, m3.',
+            'etat.required' => 'L\'état est obligatoire.',
+            'etat.in' => 'L\'état doit être parmi : neuf, bon, usagé, à réparer.',
+            'localisation.required' => 'La localisation est obligatoire.',
+            'localisation.regex' => 'La localisation contient des caractères non autorisés.',
+            'description.required' => 'La description est obligatoire.',
+            'description.max' => 'La description ne peut pas dépasser 500 caractères.',
+            'description.regex' => 'La description contient des caractères non autorisés.',
+            'photos.required' => 'Au moins une photo est requise.',
+            'photos.array' => 'Les photos doivent être fournies sous forme de tableau.',
+            'photos.max' => 'Vous ne pouvez pas uploader plus de 5 photos.',
+            'photos.*.image' => 'Chaque fichier doit être une image.',
+            'photos.*.mimes' => 'Les photos doivent être au format JPEG, PNG ou JPG.',
+            'photos.*.max' => 'Chaque photo ne doit pas dépasser 2 Mo.',
+        ];
+
+        return $request->validate($rules, $messages);
     }
 
     private function handleFiles(Request $request)
