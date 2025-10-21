@@ -68,12 +68,7 @@
                 </a>
             </li>
 
-            <li class="nav-item">
-                <a class="nav-link text-dark" href="{{ url('/transactions') }}">
-                    <i class="material-symbols-rounded opacity-5">swap_horiz</i>
-                    <span class="nav-link-text ms-1">Transactions</span>
-                </a>
-            </li>
+
 
             <li class="nav-item">
                 <a class="nav-link text-dark" href="{{ route('donations.index') }}">
@@ -89,12 +84,6 @@
                 </a>
             </li>
 
-            <li class="nav-item">
-                <a class="nav-link text-dark" href="{{ url('/payments') }}">
-                    <i class="material-symbols-rounded opacity-5">payment</i>
-                    <span class="nav-link-text ms-1">Payments</span>
-                </a>
-            </li>
 
             <li class="nav-item">
                 <a class="nav-link text-dark" href="{{ route('proposition-transformations.index') }}">
